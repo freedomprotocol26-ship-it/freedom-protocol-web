@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freedom Protocol - Join the 90-Day Journey</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1d283d 0%, #2d3a4f 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 40px 0 30px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #4db5ff;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+        
+        .form-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 20px;
+        }
+        
+        .form-section {
+            margin-bottom: 25px;
+        }
+        
+        .form-section h3 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: #4db5ff;
+            border-bottom: 1px solid rgba(77, 181, 255, 0.3);
+            padding-bottom: 8px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #4db5ff;
+        }
+        
+        input::placeholder, textarea::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        select {
+            cursor: pointer;
+        }
+        
+        select option {
+            background: #1d283d;
+            color: #fff;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .checkbox-group input {
+            width: 20px;
+            height: 20px;
+        }
+        
+        .checkbox-group label {
+            margin: 0;
+            font-weight: normal;
+        }
+        
+        .time-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .warning-box {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid rgba(255, 193, 7, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .warning-box p {
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 16px;
+            background: #4db5ff;
+            color: #1d283d;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+        
+        .btn:hover {
+            background: #3aa8f5;
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .success-message {
+            display: none;
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .success-message h2 {
+            color: #4db5ff;
+            margin-bottom: 20px;
+        }
+        
+        .success-message p {
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        .whatsapp-btn {
+            display: inline-block;
+            background: #25D366;
+            color: #fff;
+            padding: 16px 30px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+        
+        .error-message {
+            background: rgba(220, 53, 69, 0.2);
+            border: 1px solid rgba(220, 53, 69, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 30px;
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .form-card {
+                padding: 20px;
+            }
+            
+            .time-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Freedom Protocol</h1>
+            <p class="subtitle">Your 90-day journey to reverse type 2 diabetes and reclaim your health</p>
+        </header>
+        
+        <div class="form-card">
+            <div id="registration-form">
+                <form id="onboardingForm">
+                    <div id="error-box" class="error-message"></div>
+                    
+                    <!-- Basic Information -->
+                    <div class="form-section">
+                        <h3>📋 Basic Information</h3>
+                        
+                        <div class="form-group">
+                            <label for="name">Your Name *</label>
+                            <input type="text" id="name" name="name" required placeholder="Enter your full name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="phone">WhatsApp Number *</label>
+                            <input type="tel" id="phone" name="phone" required placeholder="e.g., 233241234567">
+                            <small style="opacity: 0.7; display: block; margin-top: 5px;">Include country code (233 for Ghana, 234 for Nigeria)</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="country">Country *</label>
+                            <select id="country" name="country" required>
+                                <option value="">Select your country</option>
+                                <option value="Ghana">Ghana</option>
+                                <option value="Nigeria">Nigeria</option>
+                                <option value="Kenya">Kenya</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Health Information -->
+                    <div class="form-section">
+                        <h3>🏥 Health Information</h3>
+                        
+                        <div class="form-group">
+                            <label for="diabetes_type">Diabetes Status *</label>
+                            <select id="diabetes_type" name="diabetes_type" required>
+                                <option value="">Select your status</option>
+                                <option value="type2">Type 2 Diabetes (Diagnosed)</option>
+                                <option value="prediabetes">Prediabetes</option>
+                                <option value="unsure">Not sure / High risk</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="on_medication" name="on_medication">
+                            <label for="on_medication">I am currently taking diabetes medication</label>
+                        </div>
+                        
+                        <div class="form-group" id="medications-group" style="display: none;">
+                            <label for="medications">Which medications?</label>
+                            <input type="text" id="medications" name="medications" placeholder="e.g., Metformin, Insulin">
+                        </div>
+                        
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="has_glucometer" name="has_glucometer">
+                            <label for="has_glucometer">I have a glucometer to check blood sugar</label>
+                        </div>
+                    </div>
+                    
+                    <!-- Baseline Measurements -->
+                    <div class="form-section">
+                        <h3>📏 Baseline Measurements (Optional)</h3>
+                        
+                        <div class="form-group">
+                            <label for="starting_weight">Current Weight (kg)</label>
+                            <input type="number" id="starting_weight" name="starting_weight" step="0.1" placeholder="e.g., 85.5">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="starting_waist">Waist Circumference (cm)</label>
+                            <input type="number" id="starting_waist" name="starting_waist" step="0.1" placeholder="e.g., 98">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="starting_glucose">Fasting Blood Glucose (mmol/L)</label>
+                            <input type="number" id="starting_glucose" name="starting_glucose" step="0.1" placeholder="e.g., 7.5">
+                        </div>
+                    </div>
+                    
+                    <!-- Daily Schedule -->
+                    <div class="form-section">
+                        <h3>⏰ Your Daily Schedule</h3>
+                        
+                        <div class="time-row">
+                            <div class="form-group">
+                                <label for="wake_time">Usual Wake Time</label>
+                                <input type="time" id="wake_time" name="wake_time" value="06:00">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="sleep_time">Usual Sleep Time</label>
+                                <input type="time" id="sleep_time" name="sleep_time" value="22:00">
+                            </div>
+                        </div>
+                        
+                        <div class="time-row">
+                            <div class="form-group">
+                                <label for="eating_window_start">Eating Window Start</label>
+                                <input type="time" id="eating_window_start" name="eating_window_start" value="12:00">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="eating_window_end">Eating Window End</label>
+                                <input type="time" id="eating_window_end" name="eating_window_end" value="20:00">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="exercises_regularly" name="exercises_regularly">
+                            <label for="exercises_regularly">I currently exercise regularly</label>
+                        </div>
+                    </div>
+                    
+                    <!-- Motivation -->
+                    <div class="form-section">
+                        <h3>💪 Your Motivation</h3>
+                        
+                        <div class="form-group">
+                            <label for="why_starting">Why are you starting this protocol? *</label>
+                            <textarea id="why_starting" name="why_starting" required placeholder="What's driving you to make this change?"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="biggest_challenge">What's your biggest challenge with food?</label>
+                            <textarea id="biggest_challenge" name="biggest_challenge" placeholder="e.g., Late night eating, sweet tooth, social pressure..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- Agreement -->
+                    <div class="warning-box">
+                        <p>⚠️ <strong>Important:</strong> If you are on diabetes medication, please consult your doctor before starting this protocol. Combining fasting with medication can cause dangerous low blood sugar.</p>
+                    </div>
+                    
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="agreement" name="agreement" required>
+                        <label for="agreement">I understand I should consult my doctor if on medication, and I'm ready to commit to 90 days *</label>
+                    </div>
+                    
+                    <button type="submit" class="btn" id="submit-btn">Start My Freedom Protocol Journey</button>
+                </form>
+            </div>
+            
+            <div id="success-message" class="success-message">
+                <h2>🎉 You're Registered!</h2>
+                <p>Welcome to the Freedom Protocol, <span id="user-name"></span>!</p>
+                <p>Open WhatsApp and send <strong>"START"</strong> to begin your 90-day journey.</p>
+                <a href="https://wa.me/YOUR_WHATSAPP_NUMBER?text=START" class="whatsapp-btn">
+                    Open WhatsApp →
+                </a>
+                <p style="margin-top: 30px; font-size: 0.9rem; opacity: 0.8;">
+                    Your coach is ready and waiting. Day 1 starts today!
+                </p>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Freedom Protocol by Patrick</p>
+            <p>Powered by Claude AI</p>
+        </footer>
+    </div>
+    
+    <script>
+        // Show/hide medications field
+        document.getElementById('on_medication').addEventListener('change', function() {
+            document.getElementById('medications-group').style.display = this.checked ? 'block' : 'none';
+        });
+        
+        // Form submission
+        document.getElementById('onboardingForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submit-btn');
+            const errorBox = document.getElementById('error-box');
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Registering...';
+            errorBox.style.display = 'none';
+            
+            // Collect form data
+            const formData = {
+                name: document.getElementById('name').value,
+                phone: document.getElementById('phone').value.replace(/\D/g, ''), // Remove non-digits
+                country: document.getElementById('country').value,
+                diabetes_type: document.getElementById('diabetes_type').value,
+                has_diabetes: document.getElementById('diabetes_type').value !== 'unsure',
+                on_medication: document.getElementById('on_medication').checked,
+                medications: document.getElementById('medications').value || null,
+                has_glucometer: document.getElementById('has_glucometer').checked,
+                starting_weight: parseFloat(document.getElementById('starting_weight').value) || null,
+                starting_waist: parseFloat(document.getElementById('starting_waist').value) || null,
+                starting_glucose: parseFloat(document.getElementById('starting_glucose').value) || null,
+                wake_time: document.getElementById('wake_time').value,
+                sleep_time: document.getElementById('sleep_time').value,
+                eating_window_start: document.getElementById('eating_window_start').value,
+                eating_window_end: document.getElementById('eating_window_end').value,
+                exercises_regularly: document.getElementById('exercises_regularly').checked,
+                why_starting: document.getElementById('why_starting').value,
+                biggest_challenge: document.getElementById('biggest_challenge').value || null
+            };
+            
+            try {
+                // Replace with your actual API URL
+                const API_URL = window.location.origin + '/api/users';
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Show success message
+                    document.getElementById('registration-form').style.display = 'none';
+                    document.getElementById('success-message').style.display = 'block';
+                    document.getElementById('user-name').textContent = formData.name;
+                } else {
+                    throw new Error(result.message || 'Registration failed');
+                }
+                
+            } catch (error) {
+                errorBox.textContent = error.message || 'Something went wrong. Please try again.';
+                errorBox.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Start My Freedom Protocol Journey';
+            }
+        });
+    </script>
+</body>
+</html>
