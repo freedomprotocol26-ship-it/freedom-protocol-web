@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freedom Protocol - AI Health Coach</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1E2A3B;
+            --accent: #4DBBFF;
+            --background: #F7F9FB;
+            --foreground: #22272C;
+            --muted: #F1F4F7;
+            --muted-foreground: #6A7178;
+            --card: #FFFFFF;
+            --border: #DFE4E9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--background);
+            color: var(--foreground);
+            min-height: 100vh;
+        }
+
+        /* Auth Screens */
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--primary) 0%, #2d3e50 100%);
+        }
+
+        .auth-card {
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 450px;
+            padding: 40px;
+        }
+
+        .auth-logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .auth-logo h1 {
+            font-size: 32px;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .auth-logo p {
+            color: var(--muted-foreground);
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--foreground);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: 'DM Sans', sans-serif;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(77, 187, 255, 0.1);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .btn-primary:hover {
+            background: #3aa8e6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(77, 187, 255, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .toggle-auth {
+            text-align: center;
+            margin-top: 24px;
+            color: var(--muted-foreground);
+            font-size: 14px;
+        }
+
+        .toggle-auth a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .toggle-auth a:hover {
+            text-decoration: underline;
+        }
+
+        .error {
+            color: #ef4444;
+            text-align: center;
+            margin-top: 12px;
+            font-size: 14px;
+        }
+
+        /* Main App Layout */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--card);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-header h1 {
+            font-size: 24px;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .sidebar-header p {
+            font-size: 13px;
+            color: var(--muted-foreground);
+        }
+
+        .nav-menu {
+            flex: 1;
+            padding: 16px 12px;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--foreground);
+            font-weight: 500;
+            font-size: 15px;
+        }
+
+        .nav-item:hover {
+            background: var(--muted);
+        }
+
+        .nav-item.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .nav-item-icon {
+            margin-right: 12px;
+            font-size: 20px;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: var(--muted);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            margin-right: 12px;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-info-name {
+            font-weight: 600;
+            color: var(--foreground);
+            font-size: 14px;
+        }
+
+        .user-info-email {
+            font-size: 12px;
+            color: var(--muted-foreground);
+        }
+
+        .btn-logout {
+            width: 100%;
+            padding: 10px;
+            background: transparent;
+            color: #ef4444;
+            border: 2px solid #ef4444;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .btn-logout:hover {
+            background: #ef4444;
+            color: white;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 32px;
+            max-width: 1400px;
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-header h2 {
+            font-size: 32px;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .page-header p {
+            color: var(--muted-foreground);
+            font-size: 16px;
+        }
+
+        /* Dashboard Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .stat-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .stat-card-title {
+            font-size: 14px;
+            color: var(--muted-foreground);
+            font-weight: 500;
+        }
+
+        .stat-card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .stat-card-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .stat-card-change {
+            font-size: 13px;
+            color: #10b981;
+            font-weight: 500;
+        }
+
+        .stat-card-change.negative {
+            color: #ef4444;
+        }
+
+        /* Content Cards */
+        .content-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .content-card-header {
+            margin-bottom: 20px;
+        }
+
+        .content-card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* Chat Interface */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 180px);
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            background: var(--background);
+        }
+
+        .chat-message {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-message.user {
+            align-items: flex-end;
+        }
+
+        .chat-message.ai {
+            align-items: flex-start;
+        }
+
+        .chat-message-bubble {
+            max-width: 70%;
+            padding: 14px 18px;
+            border-radius: 16px;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        .chat-message.user .chat-message-bubble {
+            background: var(--accent);
+            color: white;
+        }
+
+        .chat-message.ai .chat-message-bubble {
+            background: var(--card);
+            color: var(--foreground);
+            border: 1px solid var(--border);
+        }
+
+        .chat-input-area {
+            padding: 20px;
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+        }
+
+        .chat-input-area input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 24px;
+            font-size: 15px;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .chat-input-area input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .btn-send {
+            padding: 12px 24px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 24px;
+            cursor: pointer;
+            font-weight: 600;
+            font-family: 'DM Sans', sans-serif;
+            transition: all 0.2s;
+        }
+
+        .btn-send:hover {
+            background: #3aa8e6;
+        }
+
+        /* Glucose Form */
+        .glucose-form {
+            display: grid;
+            gap: 20px;
+            max-width: 600px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .btn-secondary {
+            padding: 12px 24px;
+            background: var(--muted);
+            color: var(--foreground);
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        /* Glucose Log Table */
+        .glucose-log-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .glucose-log-table thead {
+            background: var(--muted);
+        }
+
+        .glucose-log-table th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--foreground);
+            font-size: 14px;
+        }
+
+        .glucose-log-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        .glucose-log-table tbody tr:hover {
+            background: var(--muted);
+        }
+
+        .glucose-value {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .glucose-value.high {
+            color: #ef4444;
+        }
+
+        .glucose-value.normal {
+            color: #10b981;
+        }
+
+        /* History Items */
+        .history-item {
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover {
+            background: var(--muted);
+            border-color: var(--accent);
+        }
+
+        .history-item-date {
+            font-size: 12px;
+            color: var(--muted-foreground);
+            margin-bottom: 4px;
+        }
+
+        .history-item-preview {
+            font-size: 14px;
+            color: var(--foreground);
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 24px;
+            color: var(--muted-foreground);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none !important;
+        }
+
+        .success-message {
+            padding: 12px 16px;
+            background: #d1fae5;
+            color: #065f46;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+                z-index: 100;
+            }
+
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .chat-message-bubble {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Section -->
+    <div id="authContainer" class="auth-container">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <h1>🏃‍♂️ Freedom Protocol</h1>
+                <p>Your AI-Powered Health Coach</p>
+            </div>
+
+            <!-- Login Form -->
+            <div id="loginForm">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••">
+                </div>
+                <button class="btn-primary" onclick="login()">Sign In</button>
+                <div class="toggle-auth">
+                    Don't have an account? <a href="#" onclick="toggleAuth(); return false;">Sign Up</a>
+                </div>
+                <div id="loginError" class="error"></div>
+            </div>
+
+            <!-- Signup Form -->
+            <div id="signupForm" class="hidden">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="signupName" placeholder="Your Name">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="signupEmail" placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label>Phone (optional)</label>
+                    <input type="tel" id="signupPhone" placeholder="+233 XXX XXX XXX">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="signupPassword" placeholder="••••••••">
+                </div>
+                <button class="btn-primary" onclick="signup()">Create Account</button>
+                <div class="toggle-auth">
+                    Already have an account? <a href="#" onclick="toggleAuth(); return false;">Sign In</a>
+                </div>
+                <div id="signupError" class="error"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="appContainer" class="app-container hidden">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>Freedom Protocol</h1>
+                <p>Health Coaching Platform</p>
+            </div>
+
+            <nav class="nav-menu">
+                <div class="nav-item active" onclick="showPage('dashboard')">
+                    <span class="nav-item-icon">📊</span>
+                    Dashboard
+                </div>
+                <div class="nav-item" onclick="showPage('chat')">
+                    <span class="nav-item-icon">💬</span>
+                    AI Coach
+                </div>
+                <div class="nav-item" onclick="showPage('metrics')">
+                    <span class="nav-item-icon">📈</span>
+                    Log Glucose
+                </div>
+                <div class="nav-item" onclick="showPage('history')">
+                    <span class="nav-item-icon">🕒</span>
+                    Chat History
+                </div>
+                <div class="nav-item" onclick="showPage('profile')">
+                    <span class="nav-item-icon">👤</span>
+                    Profile
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <div class="user-info">
+                        <div class="user-info-name" id="userName">User</div>
+                        <div class="user-info-email" id="userEmail">user@email.com</div>
+                    </div>
+                </div>
+                <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Dashboard Page -->
+            <div id="dashboardPage" class="page">
+                <div class="page-header">
+                    <h2>Dashboard</h2>
+                    <p>Your health overview and progress</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <span class="stat-card-title">Days Active</span>
+                            <div class="stat-card-icon" style="background: rgba(77, 187, 255, 0.1); color: var(--accent);">📅</div>
+                        </div>
+                        <div class="stat-card-value" id="daysActive">0</div>
+                        <div class="stat-card-change">Keep going strong!</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <span class="stat-card-title">Glucose Readings</span>
+                            <div class="stat-card-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">📊</div>
+                        </div>
+                        <div class="stat-card-value" id="totalReadings">0</div>
+                        <div class="stat-card-change">Total logged</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <span class="stat-card-title">AI Conversations</span>
+                            <div class="stat-card-icon" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6;">💬</div>
+                        </div>
+                        <div class="stat-card-value" id="totalChats">0</div>
+                        <div class="stat-card-change">Coaching sessions</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <span class="stat-card-title">Average Glucose</span>
+                            <div class="stat-card-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">🎯</div>
+                        </div>
+                        <div class="stat-card-value" id="avgGlucose">--</div>
+                        <div class="stat-card-change">mmol/L</div>
+                    </div>
+                </div>
+
+                <div class="content-card">
+                    <div class="content-card-header">
+                        <h3 class="content-card-title">Welcome to Freedom Protocol</h3>
+                    </div>
+                    <p style="color: var(--muted-foreground); line-height: 1.6; margin-bottom: 16px;">
+                        Start your journey to better health today. Use the AI Coach to get personalized guidance,
+                        log your glucose readings to track progress, and review your conversation history anytime.
+                    </p>
+                    <button class="btn-primary" style="width: auto; padding: 12px 24px;" onclick="showPage('chat')">
+                        Start Coaching Session
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat Page -->
+            <div id="chatPage" class="page hidden">
+                <div class="page-header">
+                    <h2>AI Health Coach</h2>
+                    <p>Get personalized guidance and support</p>
+                </div>
+
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="chat-message ai">
+                            <div class="chat-message-bubble">
+                                Welcome to the Freedom Protocol! I'm your AI health coach, powered by Claude. I'm here to help you manage your health through our proven program. How can I assist you today?
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" id="chatInput" placeholder="Type your message..." onkeypress="if(event.key==='Enter') sendMessage()">
+                        <button class="btn-send" onclick="sendMessage()">Send</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metrics Page -->
+            <div id="metricsPage" class="page hidden">
+                <div class="page-header">
+                    <h2>Log Glucose Reading</h2>
+                    <p>Track your glucose levels over time</p>
+                </div>
+
+                <div class="content-card">
+                    <div class="content-card-header">
+                        <h3 class="content-card-title">New Reading</h3>
+                    </div>
+                    <div id="glucoseSuccess" class="success-message hidden">
+                        Glucose reading logged successfully!
+                    </div>
+                    <form class="glucose-form" onsubmit="logGlucose(event)">
+                        <div class="form-group">
+                            <label>Glucose Level (mmol/L)</label>
+                            <input type="number" id="glucoseValue" placeholder="6.5" required min="2" max="25" step="0.1">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Date</label>
+                                <input type="date" id="glucoseDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Time</label>
+                                <input type="time" id="glucoseTime" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Notes (optional)</label>
+                            <input type="text" id="glucoseNotes" placeholder="Before breakfast, after exercise, etc.">
+                        </div>
+                        <div style="display: flex; gap: 12px;">
+                            <button type="submit" class="btn-primary">Log Reading</button>
+                            <button type="button" class="btn-secondary" onclick="clearGlucoseForm()">Clear</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="content-card">
+                    <div class="content-card-header">
+                        <h3 class="content-card-title">Recent Readings</h3>
+                    </div>
+                    <div id="glucoseLogContainer">
+                        <div class="loading">Loading your glucose readings...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Page -->
+            <div id="historyPage" class="page hidden">
+                <div class="page-header">
+                    <h2>Chat History</h2>
+                    <p>Review your past coaching sessions</p>
+                </div>
+
+                <div class="content-card">
+                    <div id="historyContainer">
+                        <div class="loading">Loading your chat history...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Page -->
+            <div id="profilePage" class="page hidden">
+                <div class="page-header">
+                    <h2>Profile</h2>
+                    <p>Your account information</p>
+                </div>
+
+                <div class="content-card">
+                    <div class="content-card-header">
+                        <h3 class="content-card-title">Account Details</h3>
+                    </div>
+                    <div style="display: grid; gap: 20px;">
+                        <div>
+                            <label style="display: block; font-weight: 600; color: var(--muted-foreground); font-size: 13px; margin-bottom: 4px;">NAME</label>
+                            <div id="profileName" style="font-size: 16px; color: var(--foreground);">--</div>
+                        </div>
+                        <div>
+                            <label style="display: block; font-weight: 600; color: var(--muted-foreground); font-size: 13px; margin-bottom: 4px;">EMAIL</label>
+                            <div id="profileEmail" style="font-size: 16px; color: var(--foreground);">--</div>
+                        </div>
+                        <div>
+                            <label style="display: block; font-weight: 600; color: var(--muted-foreground); font-size: 13px; margin-bottom: 4px;">PHONE</label>
+                            <div id="profilePhone" style="font-size: 16px; color: var(--foreground);">--</div>
+                        </div>
+                        <div>
+                            <label style="display: block; font-weight: 600; color: var(--muted-foreground); font-size: 13px; margin-bottom: 4px;">MEMBER SINCE</label>
+                            <div id="profileJoined" style="font-size: 16px; color: var(--foreground);">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-card">
+                    <div class="content-card-header">
+                        <h3 class="content-card-title">Program Information</h3>
+                    </div>
+                    <p style="color: var(--muted-foreground); line-height: 1.6;">
+                        You're enrolled in the Freedom Protocol 60-day program. Your AI coach is here to guide you
+                        through dietary changes, fasting schedules, and lifestyle modifications proven to help manage
+                        and reverse metabolic conditions.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        let authToken = localStorage.getItem('authToken');
+        let conversationHistory = [];
+        let currentUser = null;
+
+        // Initialize app
+        if (authToken) {
+            showApp();
+            loadUserProfile();
+            loadDashboardStats();
+        }
+
+        // Auth Functions
+        function toggleAuth() {
+            document.getElementById('loginForm').classList.toggle('hidden');
+            document.getElementById('signupForm').classList.toggle('hidden');
+            document.getElementById('loginError').textContent = '';
+            document.getElementById('signupError').textContent = '';
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorEl = document.getElementById('loginError');
+
+            if (!email || !password) {
+                errorEl.textContent = 'Please fill in all fields';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    errorEl.textContent = data.error || 'Login failed';
+                    return;
+                }
+
+                authToken = data.token;
+                currentUser = data.user;
+                localStorage.setItem('authToken', authToken);
+                localStorage.setItem('userEmail', email);
+                showApp();
+                loadUserProfile();
+                loadDashboardStats();
+            } catch (error) {
+                errorEl.textContent = 'Connection error. Please try again.';
+            }
+        }
+
+        async function signup() {
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const phone = document.getElementById('signupPhone').value;
+            const password = document.getElementById('signupPassword').value;
+            const errorEl = document.getElementById('signupError');
+
+            if (!name || !email || !password) {
+                errorEl.textContent = 'Please fill in all required fields';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/auth/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, phone, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    errorEl.textContent = data.error || 'Signup failed';
+                    return;
+                }
+
+                authToken = data.token;
+                currentUser = data.user;
+                localStorage.setItem('authToken', authToken);
+                localStorage.setItem('userEmail', email);
+                showApp();
+                loadUserProfile();
+                loadDashboardStats();
+            } catch (error) {
+                errorEl.textContent = 'Connection error. Please try again.';
+            }
+        }
+
+        function showApp() {
+            document.getElementById('authContainer').classList.add('hidden');
+            document.getElementById('appContainer').classList.remove('hidden');
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userEmail');
+            authToken = null;
+            currentUser = null;
+            conversationHistory = [];
+            document.getElementById('authContainer').classList.remove('hidden');
+            document.getElementById('appContainer').classList.add('hidden');
+            document.getElementById('chatMessages').innerHTML = `
+                <div class="chat-message ai">
+                    <div class="chat-message-bubble">
+                        Welcome to the Freedom Protocol! I'm your AI health coach, powered by Claude. I'm here to help you manage your health through our proven program. How can I assist you today?
+                    </div>
+                </div>
+            `;
+        }
+
+        // Navigation
+        function showPage(pageName) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => page.classList.add('hidden'));
+            
+            // Remove active from all nav items
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            
+            // Show selected page
+            document.getElementById(pageName + 'Page').classList.remove('hidden');
+            
+            // Add active to selected nav item
+            event.target.closest('.nav-item').classList.add('active');
+
+            // Load data for specific pages
+            if (pageName === 'metrics') {
+                loadGlucoseReadings();
+            } else if (pageName === 'history') {
+                loadChatHistory();
+            } else if (pageName === 'profile') {
+                displayProfileInfo();
+            }
+        }
+
+        // User Profile
+        async function loadUserProfile() {
+            try {
+                const response = await fetch(`${API_URL}/api/user/profile`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    currentUser = data.user;
+                    
+                    const initials = data.user.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                    document.getElementById('userAvatar').textContent = initials;
+                    document.getElementById('userName').textContent = data.user.name;
+                    document.getElementById('userEmail').textContent = data.user.email;
+                }
+            } catch (error) {
+                console.error('Failed to load profile:', error);
+            }
+        }
+
+        function displayProfileInfo() {
+            if (currentUser) {
+                document.getElementById('profileName').textContent = currentUser.name;
+                document.getElementById('profileEmail').textContent = currentUser.email;
+                document.getElementById('profilePhone').textContent = currentUser.phone || 'Not provided';
+                document.getElementById('profileJoined').textContent = new Date(currentUser.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            }
+        }
+
+        // Dashboard Stats
+        async function loadDashboardStats() {
+            try {
+                // Calculate days active
+                if (currentUser) {
+                    const joinDate = new Date(currentUser.created_at);
+                    const today = new Date();
+                    const daysActive = Math.floor((today - joinDate) / (1000 * 60 * 60 * 24));
+                    document.getElementById('daysActive').textContent = daysActive;
+                }
+
+                // Load glucose readings count
+                const glucoseResponse = await fetch(`${API_URL}/api/metrics/glucose`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (glucoseResponse.ok) {
+                    const glucoseData = await glucoseResponse.json();
+                    document.getElementById('totalReadings').textContent = glucoseData.readings.length;
+                    
+                    // Calculate average
+                    if (glucoseData.readings.length > 0) {
+                        const avg = glucoseData.readings.reduce((sum, r) => sum + r.glucose_level, 0) / glucoseData.readings.length;
+                        document.getElementById('avgGlucose').textContent = avg.toFixed(1);
+                    }
+                }
+
+                // Load chat history count
+                const historyResponse = await fetch(`${API_URL}/api/chat/history`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (historyResponse.ok) {
+                    const historyData = await historyResponse.json();
+                    document.getElementById('totalChats').textContent = historyData.history.length;
+                }
+            } catch (error) {
+                console.error('Failed to load dashboard stats:', error);
+            }
+        }
+
+        // Chat Functions
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            addChatMessage(message, 'user');
+            input.value = '';
+
+            const messagesDiv = document.getElementById('chatMessages');
+            const loadingEl = document.createElement('div');
+            loadingEl.className = 'loading';
+            loadingEl.innerHTML = '<div class="loading-spinner"></div>';
+            messagesDiv.appendChild(loadingEl);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            try {
+                const response = await fetch(`${API_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        message,
+                        conversationHistory
+                    })
+                });
+
+                const data = await response.json();
+                messagesDiv.removeChild(loadingEl);
+
+                if (!response.ok) {
+                    addChatMessage('Sorry, I encountered an error. Please try again.', 'ai');
+                    return;
+                }
+
+                addChatMessage(data.message, 'ai');
+
+                conversationHistory.push(
+                    { role: 'user', content: message },
+                    { role: 'assistant', content: data.message }
+                );
+
+                // Update stats
+                loadDashboardStats();
+            } catch (error) {
+                messagesDiv.removeChild(loadingEl);
+                addChatMessage('Connection error. Please check your internet and try again.', 'ai');
+            }
+        }
+
+        function addChatMessage(text, sender) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageEl = document.createElement('div');
+            messageEl.className = `chat-message ${sender}`;
+            
+            const bubbleEl = document.createElement('div');
+            bubbleEl.className = 'chat-message-bubble';
+            bubbleEl.textContent = text;
+            
+            messageEl.appendChild(bubbleEl);
+            messagesDiv.appendChild(messageEl);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Glucose Functions
+        async function logGlucose(event) {
+            event.preventDefault();
+
+            const glucose_level = parseInt(document.getElementById('glucoseValue').value);
+            const date = document.getElementById('glucoseDate').value;
+            const time = document.getElementById('glucoseTime').value;
+            const notes = document.getElementById('glucoseNotes').value;
+
+            const measured_at = `${date}T${time}:00`;
+
+            try {
+                const response = await fetch(`${API_URL}/api/metrics/glucose`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ glucose_level, measured_at, notes })
+                });
+
+                if (response.ok) {
+                    document.getElementById('glucoseSuccess').classList.remove('hidden');
+                    setTimeout(() => {
+                        document.getElementById('glucoseSuccess').classList.add('hidden');
+                    }, 3000);
+                    clearGlucoseForm();
+                    loadGlucoseReadings();
+                    loadDashboardStats();
+                } else {
+                    alert('Failed to log glucose reading');
+                }
+            } catch (error) {
+                alert('Connection error. Please try again.');
+            }
+        }
+
+        function clearGlucoseForm() {
+            document.getElementById('glucoseValue').value = '';
+            document.getElementById('glucoseDate').value = '';
+            document.getElementById('glucoseTime').value = '';
+            document.getElementById('glucoseNotes').value = '';
+        }
+
+        async function loadGlucoseReadings() {
+            const container = document.getElementById('glucoseLogContainer');
+            
+            try {
+                const response = await fetch(`${API_URL}/api/metrics/glucose`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (!response.ok) {
+                    container.innerHTML = '<div class="loading">Failed to load glucose readings</div>';
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.readings.length === 0) {
+                    container.innerHTML = '<div class="loading">No glucose readings yet. Log your first reading above!</div>';
+                    return;
+                }
+
+                let tableHTML = `
+                    <table class="glucose-log-table">
+                        <thead>
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Glucose Level</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                data.readings.forEach(reading => {
+                    const date = new Date(reading.measured_at);
+                    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                    
+                    const glucoseClass = reading.glucose_level > 7.8 ? 'high' : 'normal';
+                    
+                    tableHTML += `
+                        <tr>
+                            <td>${dateStr} at ${timeStr}</td>
+                            <td><span class="glucose-value ${glucoseClass}">${reading.glucose_level} mmol/L</span></td>
+                            <td>${reading.notes || '-'}</td>
+                        </tr>
+                    `;
+                });
+
+                tableHTML += '</tbody></table>';
+                container.innerHTML = tableHTML;
+
+            } catch (error) {
+                container.innerHTML = '<div class="loading">Connection error. Please try again.</div>';
+            }
+        }
+
+        // Chat History
+        async function loadChatHistory() {
+            const container = document.getElementById('historyContainer');
+
+            try {
+                const response = await fetch(`${API_URL}/api/chat/history`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (!response.ok) {
+                    container.innerHTML = '<div class="loading">Failed to load chat history</div>';
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.history.length === 0) {
+                    container.innerHTML = '<div class="loading">No chat history yet. Start a conversation with your AI coach!</div>';
+                    return;
+                }
+
+                let historyHTML = '';
+                data.history.forEach(chat => {
+                    const date = new Date(chat.created_at);
+                    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    
+                    historyHTML += `
+                        <div class="history-item">
+                            <div class="history-item-date">${dateStr}</div>
+                            <div class="history-item-preview"><strong>You:</strong> ${chat.user_message.substring(0, 100)}${chat.user_message.length > 100 ? '...' : ''}</div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = historyHTML;
+
+            } catch (error) {
+                container.innerHTML = '<div class="loading">Connection error. Please try again.</div>';
+            }
+        }
+
+        // Set current date and time as defaults for glucose form
+        document.addEventListener('DOMContentLoaded', () => {
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(':').slice(0, 2).join(':');
+            
+            if (document.getElementById('glucoseDate')) {
+                document.getElementById('glucoseDate').value = dateStr;
+                document.getElementById('glucoseTime').value = timeStr;
+            }
+        });
+    </script>
+</body>
+</html>
