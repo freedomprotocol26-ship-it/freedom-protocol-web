@@ -960,9 +960,7 @@
                 localStorage.setItem('freedom_protocol_user_email', data.user.email);
                 localStorage.setItem('freedom_protocol_user_name', data.user.name);
                 localStorage.setItem('userEmail', email);
-                showApp();
-                loadUserProfile();
-                loadDashboardStats();
+                window.location.href = '/dashboard.html';
             } catch (error) {
                 errorEl.textContent = 'Connection error. Please try again.';
             }
@@ -1001,9 +999,7 @@
                 localStorage.setItem('freedom_protocol_user_email', data.user.email);
                 localStorage.setItem('freedom_protocol_user_name', data.user.name);
                 localStorage.setItem('userEmail', email);
-                showApp();
-                loadUserProfile();
-                loadDashboardStats();
+                window.location.href = '/dashboard.html';
             } catch (error) {
                 errorEl.textContent = 'Connection error. Please try again.';
             }
