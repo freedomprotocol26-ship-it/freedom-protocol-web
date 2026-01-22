@@ -956,6 +956,9 @@
                 authToken = data.token;
                 currentUser = data.user;
                 localStorage.setItem('authToken', authToken);
+                localStorage.setItem('freedom_protocol_user_id', data.user.id);
+                localStorage.setItem('freedom_protocol_user_email', data.user.email);
+                localStorage.setItem('freedom_protocol_user_name', data.user.name);
                 localStorage.setItem('userEmail', email);
                 showApp();
                 loadUserProfile();
@@ -994,6 +997,9 @@
                 authToken = data.token;
                 currentUser = data.user;
                 localStorage.setItem('authToken', authToken);
+                localStorage.setItem('freedom_protocol_user_id', data.user.id);
+                localStorage.setItem('freedom_protocol_user_email', data.user.email);
+                localStorage.setItem('freedom_protocol_user_name', data.user.name);
                 localStorage.setItem('userEmail', email);
                 showApp();
                 loadUserProfile();
@@ -1011,6 +1017,9 @@
         function logout() {
             localStorage.removeItem('authToken');
             localStorage.removeItem('userEmail');
+            localStorage.removeItem('freedom_protocol_user_id');
+            localStorage.removeItem('freedom_protocol_user_email');
+            localStorage.removeItem('freedom_protocol_user_name');
             authToken = null;
             currentUser = null;
             conversationHistory = [];
