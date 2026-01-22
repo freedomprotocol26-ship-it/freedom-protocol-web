@@ -57,6 +57,9 @@ app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
+// Serve static files FIRST (dashboard, login, etc.)
+app.use(express.static('public'));
+
 // WhatsApp webhook routes
 app.use('/', webhookRoutes);
 
@@ -65,9 +68,6 @@ app.use('/', paymentRoutes);
 
 // Report routes (caregiver sharing)
 app.use('/', reportRoutes);
-
-// Serve static files (onboarding form)
-app.use(express.static('public'));
 
 // ===========================================
 // API ROUTES (for onboarding form)
