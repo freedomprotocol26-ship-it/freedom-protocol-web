@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freedom Protocol - AI-Powered Health Coaching for Chronic Conditions</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        /* Header */
+        header {
+            background: #1d283d;
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        nav {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #4db5ff;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #1d283d 0%, #4db5ff 100%);
+            color: white;
+            padding: 6rem 2rem;
+            text-align: center;
+        }
+
+        .hero-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+        }
+
+        .hero .price {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 2rem 0;
+        }
+
+        .hero .price small {
+            font-size: 1.2rem;
+            opacity: 0.8;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: #4db5ff;
+            color: white;
+            padding: 1.2rem 3rem;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s;
+            border: 2px solid #4db5ff;
+        }
+
+        .cta-button:hover {
+            background: transparent;
+            border-color: white;
+        }
+
+        /* Sections */
+        section {
+            padding: 5rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        section h2 {
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            text-align: center;
+            color: #1d283d;
+        }
+
+        /* Story Section */
+        .story {
+            background: #f8f9fa;
+        }
+
+        .story-content {
+            max-width: 800px;
+            margin: 0 auto;
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .story-content p {
+            margin-bottom: 1.5rem;
+        }
+
+        .highlight-box {
+            background: white;
+            padding: 2rem;
+            border-left: 4px solid #4db5ff;
+            margin: 2rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        /* Conditions Grid */
+        .conditions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .condition-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .condition-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .condition-card h3 {
+            color: #1d283d;
+            margin-bottom: 1rem;
+        }
+
+        /* How It Works */
+        .how-it-works {
+            background: #1d283d;
+            color: white;
+        }
+
+        .how-it-works h2 {
+            color: white;
+        }
+
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 3rem;
+            margin-top: 3rem;
+        }
+
+        .step {
+            text-align: center;
+        }
+
+        .step-number {
+            width: 80px;
+            height: 80px;
+            background: #4db5ff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0 auto 1.5rem;
+        }
+
+        .step h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Features */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .feature {
+            padding: 2rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .feature h3 {
+            color: #1d283d;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .feature-icon {
+            font-size: 1.5rem;
+        }
+
+        /* Pricing */
+        .pricing {
+            background: #f8f9fa;
+        }
+
+        .pricing-card {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 3rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .pricing-card .price {
+            font-size: 3rem;
+            color: #4db5ff;
+            font-weight: bold;
+            margin: 2rem 0;
+        }
+
+        .pricing-card ul {
+            list-style: none;
+            margin: 2rem 0;
+            text-align: left;
+        }
+
+        .pricing-card li {
+            padding: 0.8rem 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .pricing-card li:before {
+            content: "✓ ";
+            color: #4db5ff;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        /* Partners */
+        .partners {
+            background: #1d283d;
+            color: white;
+            text-align: center;
+        }
+
+        .partners h2 {
+            color: white;
+        }
+
+        .partners p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Footer */
+        footer {
+            background: #212529;
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        footer p {
+            margin-bottom: 1rem;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero p {
+                font-size: 1.1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            section {
+                padding: 3rem 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <nav>
+            <div class="logo">🏃 Freedom Protocol</div>
+            <ul class="nav-links">
+                <li><a href="#how-it-works">How It Works</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="#partners">For Partners</a></li>
+                <li><a href="/index.html">Sign In</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Reclaim Your Health From Diabetes, Hypertension & Chronic Disease</h1>
+            <p>AI-powered coaching with proven lifestyle protocols. Get personalized support, track your progress, and see real results in 60 days.</p>
+            <div class="price">GHS 95<small>/month</small></div>
+            <a href="/onboarding.html" class="cta-button">Start Your Freedom Protocol</a>
+        </div>
+    </section>
+
+    <!-- Personal Story -->
+    <section class="story">
+        <h2>Why I Built Freedom Protocol</h2>
+        <div class="story-content">
+            <p>Hi, I'm Patrick Dasoberi. As the former CTO of CarePoint (African Health Holding), I operated healthcare AI systems across Ghana, Nigeria, Kenya, and Egypt, managing over 25 million patient records.</p>
+            
+            <p>But my journey with Freedom Protocol is deeply personal.</p>
+            
+            <p>I was diagnosed with Type 2 Diabetes, and like many, I struggled with the overwhelming information, conflicting advice, and the challenge of making sustainable lifestyle changes. I knew there had to be a better way.</p>
+            
+            <div class="highlight-box">
+                <strong>My Success Story:</strong> Using the exact protocol I'm now sharing with you - a combination of Low-Carb High-Fat eating adapted for Ghanaian foods, intermittent fasting, and AI-powered daily coaching - I successfully reversed my diabetes. My fasting glucose went from dangerous levels to normal, and I've maintained these results.
+            </div>
+            
+            <p>I built Freedom Protocol because I wanted to solve my own problem. And if it worked for me, it can work for you too.</p>
+            
+            <p>This isn't just another health app. It's a proven system, backed by my operational experience managing healthcare data for millions, combined with cutting-edge AI technology and evidence-based protocols.</p>
+        </div>
+    </section>
+
+    <!-- Conditions We Help -->
+    <section>
+        <h2>Conditions We Help Manage</h2>
+        <div class="conditions-grid">
+            <div class="condition-card">
+                <h3>Type 2 Diabetes</h3>
+                <p>Reverse insulin resistance through proven LCHF and intermittent fasting protocols</p>
+            </div>
+            <div class="condition-card">
+                <h3>Hypertension</h3>
+                <p>Lower blood pressure naturally with lifestyle modifications and daily monitoring</p>
+            </div>
+            <div class="condition-card">
+                <h3>Pre-diabetes</h3>
+                <p>Prevent progression to diabetes with early intervention and metabolic optimization</p>
+            </div>
+            <div class="condition-card">
+                <h3>Metabolic Syndrome</h3>
+                <p>Address the root causes with comprehensive lifestyle transformation</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works" id="how-it-works">
+        <h2>How It Works</h2>
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3>Complete Health Assessment</h3>
+                <p>Share your health history, current medications, goals, and lifestyle. This helps us personalize your protocol.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3>Get Daily AI Coaching</h3>
+                <p>Your AI health coach powered by Claude checks in with you daily, answers questions, and keeps you accountable.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3>Track & See Results</h3>
+                <p>Monitor your glucose, blood pressure, weight, and other metrics. Watch your health transform over 60 days.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section>
+        <h2>What's Included</h2>
+        <div class="features-grid">
+            <div class="feature">
+                <h3><span class="feature-icon">🤖</span> 24/7 AI Health Coach</h3>
+                <p>Powered by Claude AI, get instant answers to your health questions anytime</p>
+            </div>
+            <div class="feature">
+                <h3><span class="feature-icon">📊</span> Health Metrics Tracking</h3>
+                <p>Track glucose, blood pressure, weight, and see your progress over time</p>
+            </div>
+            <div class="feature">
+                <h3><span class="feature-icon">🍽️</span> Ghanaian Meal Plans</h3>
+                <p>LCHF protocols adapted for local foods - fufu alternatives, healthier preparations</p>
+            </div>
+            <div class="feature">
+                <h3><span class="feature-icon">⏰</span> Daily Check-ins</h3>
+                <p>Morning, midday, and evening accountability to keep you on track</p>
+            </div>
+            <div class="feature">
+                <h3><span class="feature-icon">📈</span> Progress Monitoring</h3>
+                <p>Visual charts and insights showing your health improvements</p>
+            </div>
+            <div class="feature">
+                <h3><span class="feature-icon">🎯</span> Proven Protocol</h3>
+                <p>Evidence-based LCHF + intermittent fasting approach that works</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="pricing" id="pricing">
+        <h2>Simple, Affordable Pricing</h2>
+        <div class="pricing-card">
+            <h3>Monthly Subscription</h3>
+            <div class="price">GHS 95<small>/month</small></div>
+            <ul>
+                <li>Full access to AI health coach</li>
+                <li>Unlimited health tracking</li>
+                <li>Daily check-ins and accountability</li>
+                <li>Personalized meal plans</li>
+                <li>Progress monitoring and insights</li>
+                <li>Cancel anytime</li>
+            </ul>
+            <a href="/onboarding.html" class="cta-button">Get Started Now</a>
+        </div>
+    </section>
+
+    <!-- Partners -->
+    <section class="partners" id="partners">
+        <h2>For Healthcare Facilities</h2>
+        <p>Are you a hospital, clinic, or healthcare provider?<br>Partner with us to offer Freedom Protocol to your patients.</p>
+        <p><strong>Bulk pricing available for healthcare facilities</strong></p>
+        <a href="/partner-apply.html" class="cta-button">Become a Partner</a>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p><strong>Freedom Protocol</strong> by Patrick Dasoberi</p>
+        <p>Former CTO, CarePoint (African Health Holding) | CISA & CDPSE Certified</p>
+        <p>Operating in Ghana, Nigeria, Kenya, South Africa</p>
+        <p>&copy; 2026 Freedom Protocol. All rights reserved.</p>
+    </footer>
+</body>
+</html>
