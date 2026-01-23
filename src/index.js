@@ -14,6 +14,7 @@ const config = require('./config');
 const webhookRoutes = require('./routes/webhook');
 const paymentRoutes = require('./routes/payment');
 const reportRoutes = require('./routes/report');
+const partnerRoutes = require('./routes/partner');
 
 // Import scheduler
 const { startScheduler } = require('./scheduler/daily-checkin');
@@ -69,6 +70,9 @@ app.use('/', paymentRoutes);
 
 // Report routes (caregiver sharing)
 app.use('/', reportRoutes);
+
+// Partner routes (application and admin)
+app.use('/', partnerRoutes);
 
 // ===========================================
 // API ROUTES (for onboarding form)
