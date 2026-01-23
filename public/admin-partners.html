@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Partner Applications - Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+        }
+
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .filters label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .filters select {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .applications-list {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .application-card {
+            padding: 25px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s;
+        }
+
+        .application-card:hover {
+            background: #f9fafb;
+        }
+
+        .application-card:last-child {
+            border-bottom: none;
+        }
+
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .app-info h3 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .app-info p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-approved {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .app-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .detail-value {
+            font-size: 14px;
+            color: #333;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-approve {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-approve:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        .btn-reject {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-reject:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+
+        .btn-view {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-view:hover {
+            background: #5568d3;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .modal-content textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            min-height: 100px;
+            font-family: inherit;
+            margin-bottom: 20px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        @media (max-width: 768px) {
+            .filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .app-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .actions {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 Partner Applications</h1>
+            <p>Review and manage healthcare partner applications</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Pending Review</h3>
+                <div class="value" id="pendingCount">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Approved Partners</h3>
+                <div class="value" id="approvedCount">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Applications</h3>
+                <div class="value" id="totalCount">-</div>
+            </div>
+        </div>
+
+        <div class="filters">
+            <label>Filter by Status:</label>
+            <select id="statusFilter">
+                <option value="">All Applications</option>
+                <option value="pending" selected>Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+            </select>
+        </div>
+
+        <div class="applications-list" id="applicationsList">
+            <div class="loading">Loading applications...</div>
+        </div>
+    </div>
+
+    <!-- Rejection Modal -->
+    <div class="modal" id="rejectModal">
+        <div class="modal-content">
+            <h3>Reject Application</h3>
+            <textarea id="rejectionReason" placeholder="Enter reason for rejection..."></textarea>
+            <div class="modal-actions">
+                <button class="btn" onclick="closeRejectModal()">Cancel</button>
+                <button class="btn btn-reject" onclick="confirmReject()">Confirm Rejection</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        let currentPartnerId = null;
+
+        // Load applications on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadApplications();
+            
+            document.getElementById('statusFilter').addEventListener('change', () => {
+                loadApplications();
+            });
+        });
+
+        async function loadApplications() {
+            const status = document.getElementById('statusFilter').value;
+            const listContainer = document.getElementById('applicationsList');
+            
+            listContainer.innerHTML = '<div class="loading">Loading applications...</div>';
+
+            try {
+                const url = status ? `${API_URL}/api/admin/partners?status=${status}` : `${API_URL}/api/admin/partners`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load applications');
+                }
+
+                updateStats(data.partners);
+                displayApplications(data.partners);
+
+            } catch (error) {
+                console.error('Error loading applications:', error);
+                listContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <p>Failed to load applications</p>
+                    </div>
+                `;
+            }
+        }
+
+        function updateStats(partners) {
+            const pending = partners.filter(p => p.status === 'pending').length;
+            const approved = partners.filter(p => p.status === 'approved').length;
+            
+            document.getElementById('pendingCount').textContent = pending;
+            document.getElementById('approvedCount').textContent = approved;
+            document.getElementById('totalCount').textContent = partners.length;
+        }
+
+        function displayApplications(partners) {
+            const listContainer = document.getElementById('applicationsList');
+
+            if (partners.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <p>No applications found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listContainer.innerHTML = partners.map(partner => `
+                <div class="application-card">
+                    <div class="app-header">
+                        <div class="app-info">
+                            <h3>${partner.full_name}</h3>
+                            <p>${partner.email} • ${partner.phone}</p>
+                        </div>
+                        <span class="status-badge status-${partner.status}">${partner.status}</span>
+                    </div>
+
+                    <div class="app-details">
+                        <div class="detail-item">
+                            <span class="detail-label">License Type</span>
+                            <span class="detail-value">${formatLicenseType(partner.license_type)}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">License Number</span>
+                            <span class="detail-value">${partner.license_number}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Specialty</span>
+                            <span class="detail-value">${partner.specialty || 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Experience</span>
+                            <span class="detail-value">${partner.years_experience} years</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Facility</span>
+                            <span class="detail-value">${partner.facility_name}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Applied</span>
+                            <span class="detail-value">${formatDate(partner.application_date)}</span>
+                        </div>
+                    </div>
+
+                    ${partner.status === 'pending' ? `
+                        <div class="actions">
+                            <button class="btn btn-approve" onclick="approvePartner('${partner.id}')">
+                                ✓ Approve
+                            </button>
+                            <button class="btn btn-reject" onclick="openRejectModal('${partner.id}')">
+                                ✗ Reject
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function formatLicenseType(type) {
+            const types = {
+                'doctor': 'Medical Doctor',
+                'senior_nurse': 'Senior Nurse',
+                'care_coordinator': 'Care Coordinator'
+            };
+            return types[type] || type;
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-GB', { 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric' 
+            });
+        }
+
+        async function approvePartner(partnerId) {
+            if (!confirm('Are you sure you want to approve this partner application?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/admin/partners/${partnerId}/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        reviewed_by: 'Admin',
+                        commission_rate: 10.00
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Partner approved successfully!');
+                    loadApplications();
+                } else {
+                    alert(data.error || 'Failed to approve partner');
+                }
+            } catch (error) {
+                console.error('Approval error:', error);
+                alert('Failed to approve partner');
+            }
+        }
+
+        function openRejectModal(partnerId) {
+            currentPartnerId = partnerId;
+            document.getElementById('rejectModal').classList.add('active');
+            document.getElementById('rejectionReason').value = '';
+        }
+
+        function closeRejectModal() {
+            document.getElementById('rejectModal').classList.remove('active');
+            currentPartnerId = null;
+        }
+
+        async function confirmReject() {
+            const reason = document.getElementById('rejectionReason').value.trim();
+
+            if (!reason) {
+                alert('Please enter a rejection reason');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/admin/partners/${currentPartnerId}/reject`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        reviewed_by: 'Admin',
+                        rejection_reason: reason
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Partner application rejected');
+                    closeRejectModal();
+                    loadApplications();
+                } else {
+                    alert(data.error || 'Failed to reject partner');
+                }
+            } catch (error) {
+                console.error('Rejection error:', error);
+                alert('Failed to reject partner');
+            }
+        }
+    </script>
+</body>
+</html>
