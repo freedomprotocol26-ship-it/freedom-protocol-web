@@ -13,6 +13,7 @@ const config = require('./config');
 // Import routes
 const webhookRoutes = require('./routes/webhook');
 const paymentRoutes = require('./routes/payment');
+const authRoutes = require('./routes/auth');
 const reportRoutes = require('./routes/report');
 const partnerRoutes = require('./routes/partner');
 
@@ -64,6 +65,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 // WhatsApp webhook routes
 app.use('/', webhookRoutes);
+app.use('/api/auth', authRoutes);
 
 // Payment routes (Paystack)
 app.use('/', paymentRoutes);
