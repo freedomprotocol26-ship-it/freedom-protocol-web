@@ -7,6 +7,7 @@
  */
 
 const express = require('express');
+const path = require('path');
 const config = require('./config');
 
 // Import routes
@@ -58,7 +59,7 @@ app.get('/health', (req, res) => {
 });
 
 // Serve static files FIRST (dashboard, login, etc.)
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, '../public')));
 
 // WhatsApp webhook routes
 app.use('/', webhookRoutes);
