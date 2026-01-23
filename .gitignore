@@ -29,3 +29,13 @@ coverage/
 # Temporary files
 tmp/
 temp/
+
+# Downloaded HTML files
+*.html.saved
+freedomprotocol26-ship-it*
+
+# Mac system files
+.DS_Store
+
+# Temporary files
+Freedom Protocol Logo.png
