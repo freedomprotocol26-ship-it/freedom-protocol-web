@@ -200,3 +200,14 @@ process.on('SIGINT', async () => {
 
 // Start the server
 startServer();
+
+// Diagnostic route - remove after testing
+app.get('/test-static', (req, res) => {
+    const fs = require('fs');
+    const dashboardPath = path.join(__dirname, '../public/dashboard.html');
+    if (fs.existsSync(dashboardPath)) {
+        res.send('✅ Dashboard file found on disk at: ' + dashboardPath);
+    } else {
+        res.send('❌ File NOT found at: ' + dashboardPath);
+    }
+});
