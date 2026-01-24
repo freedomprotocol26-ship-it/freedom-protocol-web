@@ -68,6 +68,7 @@ Keep it clear and concise for healthcare provider review.`;
         const explanation = await anthropic.messages.create({
             model: 'claude-sonnet-4-20250514',
             max_tokens: 300,
+            system: 'You are analyzing health coaching advice for medical review.',
             messages: [{ role: 'user', content: explainPrompt }]
         });
 
@@ -96,6 +97,7 @@ Give brief, encouraging feedback (2-3 sentences). If high, offer ONE tip. If goo
         const response = await anthropic.messages.create({
             model: 'claude-sonnet-4-20250514',
             max_tokens: 200,
+            system: 'You are a supportive health coach for Freedom Protocol.',
             messages: [{ role: 'user', content: prompt }]
         });
 
