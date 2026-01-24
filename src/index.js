@@ -288,9 +288,10 @@ async function startServer() {
             )
         `);
 
-        // Create glucose_readings table
+        // Drop and recreate glucose_readings table with correct structure
+        await pool.query('DROP TABLE IF EXISTS glucose_readings CASCADE');
         await pool.query(`
-            CREATE TABLE IF NOT EXISTS glucose_readings (
+            CREATE TABLE glucose_readings (
                 id SERIAL PRIMARY KEY,
                 user_id UUID NOT NULL,
                 glucose_level DECIMAL(5,2) NOT NULL,
