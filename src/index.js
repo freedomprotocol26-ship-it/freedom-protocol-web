@@ -1,6 +1,6 @@
 /**
- * Freedom Protocol - Complete Backend
- * Final working version with UUID support
+ * Freedom Protocol - Complete Final Backend
+ * Clean, working version with all features
  */
 
 const express = require('express');
@@ -72,7 +72,7 @@ app.post('/api/auth/signup', async (req, res) => {
         // Hash password
         const passwordHash = await bcrypt.hash(password, 10);
 
-        // Create user with explicit UUID
+        // Create user
         const result = await pool.query(
             `INSERT INTO app_users (id, name, email, password_hash, phone, created_at) 
              VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW())
@@ -276,18 +276,7 @@ async function startServer() {
         await pool.query('SELECT 1');
         console.log('✅ Database connected');
 
-        // Ensure glucose_readings table exists with correct structure
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS glucose_readings (
-                id SERIAL PRIMARY KEY,
-                user_id UUID NOT NULL,
-                glucose_level DECIMAL(5,2) NOT NULL,
-                measured_at TIMESTAMP NOT NULL,
-                notes TEXT,
-                created_at TIMESTAMP DEFAULT NOW()
-            )
-        `);
-
+        // Create app_users table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS app_users (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -299,6 +288,19 @@ async function startServer() {
             )
         `);
 
+        // Create glucose_readings table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS glucose_readings (
+                id SERIAL PRIMARY KEY,
+                user_id UUID NOT NULL,
+                glucose_level DECIMAL(5,2) NOT NULL,
+                measured_at TIMESTAMP NOT NULL,
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        `);
+
+        // Create partners table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS partners (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -316,6 +318,33 @@ async function startServer() {
                 created_at TIMESTAMP DEFAULT NOW()
             )
         `);
+
+        // Create partner_activity_log table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS partner_activity_log (
+                id SERIAL PRIMARY KEY,
+                partner_id UUID REFERENCES partners(id),
+                activity_type VARCHAR(100) NOT NULL,
+                description TEXT,
+                performed_by UUID,
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        `);
+
+        // Create partner_commissions table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS partner_commissions (
+                id SERIAL PRIMARY KEY,
+                partner_id UUID REFERENCES partners(id),
+                user_id UUID REFERENCES app_users(id),
+                amount DECIMAL(10,2) NOT NULL,
+                month VARCHAR(7) NOT NULL,
+                status VARCHAR(50) DEFAULT 'pending',
+                paid_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        `);
+
         console.log('✅ Database tables ready');
 
         app.listen(PORT, () => {
