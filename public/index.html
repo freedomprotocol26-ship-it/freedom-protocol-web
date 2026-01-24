@@ -456,6 +456,7 @@
             <div class="tabs">
                 <button class="tab active" onclick="showTab('dashboard')">📊 Dashboard</button>
                 <button class="tab" onclick="showTab('glucose')">📈 Log Glucose</button>
+                <button class="tab" onclick="showTab('coach')">🤖 AI Coach</button>
                 <button class="tab" onclick="showTab('profile')">👤 Profile</button>
             </div>
 
@@ -510,6 +511,27 @@
                         </div>
                         <button type="submit" class="btn">Log Reading</button>
                     </form>
+                </div>
+            </div>
+
+            <!-- AI Coach Tab -->
+            <div id="coachTab" class="tab-content">
+                <div class="card">
+                    <h3>AI Health Coach Analysis</h3>
+                    <p style="color: var(--text-light); margin-bottom: 20px;">Get personalized coaching based on your glucose data</p>
+                    <button class="btn" onclick="getAIAnalysis()" id="analysisBtn">Get AI Coach Advice</button>
+                    <div id="aiAnalysis" style="margin-top: 20px; display: none;">
+                        <div style="background: var(--bg); padding: 20px; border-radius: 12px; line-height: 1.8;">
+                            <div id="analysisContent"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 20px;">
+                    <h3>Recent AI Feedback</h3>
+                    <div id="recentFeedback">
+                        <div class="loading">Loading feedback...</div>
+                    </div>
                 </div>
             </div>
 
@@ -793,6 +815,135 @@
                 console.error('Load glucose error:', error);
             }
         }
+
+        // AI Coach Functions
+        async function getAIAnalysis() {
+            const btn = document.getElementById('analysisBtn');
+            btn.disabled = true;
+            btn.textContent = 'Analyzing your data...';
+
+            try {
+                const response = await fetch(`${API_URL}/api/chat/analysis`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('analysisContent').innerHTML = 
+                        data.analysis.replace(/
+/g, '<br>');
+                    document.getElementById('aiAnalysis').style.display = 'block';
+                    btn.textContent = 'Refresh Analysis';
+                } else {
+                    alert('Failed to get AI analysis');
+                    btn.textContent = 'Get AI Coach Advice';
+                }
+            } catch (error) {
+                alert('Connection error');
+                btn.textContent = 'Get AI Coach Advice';
+            }
+
+            btn.disabled = false;
+        }
+
+        async function loadRecentFeedback() {
+            try {
+                const response = await fetch(`${API_URL}/api/chat/history`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (!response.ok) return;
+
+                const data = await response.json();
+                const conversations = data.conversations;
+
+                if (conversations.length > 0) {
+                    const html = conversations.slice(0, 5).map(c => {
+                        const date = new Date(c.created_at);
+                        return `
+                            <div style="background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 12px;">
+                                <div style="font-size: 12px; color: var(--text-light); margin-bottom: 8px;">
+                                    ${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                </div>
+                                <div style="font-weight: 600; margin-bottom: 8px;">You: ${c.user_message}</div>
+                                <div style="color: var(--text); line-height: 1.6;">${c.ai_response}</div>
+                            </div>
+                        `;
+                    }).join('');
+                    document.getElementById('recentFeedback').innerHTML = html;
+                } else {
+                    document.getElementById('recentFeedback').innerHTML = 
+                        '<div class="loading">No AI feedback yet. Log some glucose readings!</div>';
+                }
+            } catch (error) {
+                console.error('Load feedback error:', error);
+            }
+        }
+
+        // Update logGlucose to get AI feedback
+        const originalLogGlucose = logGlucose;
+        logGlucose = async function(event) {
+            event.preventDefault();
+
+            const glucose_level = parseFloat(document.getElementById('glucoseValue').value);
+            const date = document.getElementById('glucoseDate').value;
+            const time = document.getElementById('glucoseTime').value;
+            const notes = document.getElementById('glucoseNotes').value;
+            const measured_at = `${date}T${time}:00`;
+
+            try {
+                // Log glucose
+                const response = await fetch(`${API_URL}/api/metrics/glucose`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ glucose_level, measured_at, notes })
+                });
+
+                if (response.ok) {
+                    // Get AI feedback
+                    const feedbackResponse = await fetch(`${API_URL}/api/chat/quick-feedback`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify({ glucose_level, measured_at, notes })
+                    });
+
+                    if (feedbackResponse.ok) {
+                        const feedbackData = await feedbackResponse.json();
+                        
+                        // Show success with AI feedback
+                        const successEl = document.getElementById('glucoseSuccess');
+                        successEl.innerHTML = `
+                            ✅ Reading logged successfully!<br>
+                            <div style="margin-top: 10px; padding: 10px; background: white; border-radius: 8px; font-size: 13px;">
+                                <strong>AI Coach:</strong> ${feedbackData.feedback}
+                            </div>
+                        `;
+                        successEl.classList.remove('hidden');
+                        
+                        setTimeout(() => {
+                            successEl.classList.add('hidden');
+                            successEl.innerHTML = '✅ Reading logged successfully!';
+                        }, 8000);
+                    }
+                    
+                    document.getElementById('glucoseValue').value = '';
+                    document.getElementById('glucoseNotes').value = '';
+                    
+                    loadGlucoseData();
+                    document.querySelectorAll('.tab')[0].click();
+                } else {
+                    alert('Failed to log reading');
+                }
+            } catch (error) {
+                alert('Connection error');
+            }
+        };
 
         // Set current date/time
         const now = new Date();
