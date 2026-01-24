@@ -11,11 +11,9 @@ router.get('/api/metrics/glucose', async (req, res) => {
         }
 
         // Extract user ID from token (simplified - you may need to decode JWT)
-        const userId = req.user?.id || req.headers['x-user-id'];
+        const userId = req.user.userId;
         
-        if (!userId) {
-            return res.status(401).json({ error: 'User not authenticated' });
-        }
+        // User authenticated via middleware
 
         const result = await pool.query(
             `SELECT * FROM glucose_readings 
@@ -46,11 +44,9 @@ router.post('/api/metrics/glucose', async (req, res) => {
         }
 
         // Extract user ID from token
-        const userId = req.user?.id || req.headers['x-user-id'];
+        const userId = req.user.userId;
         
-        if (!userId) {
-            return res.status(401).json({ error: 'User not authenticated' });
-        }
+        // User authenticated via middleware
 
         // Validation
         if (!glucose_level || !measured_at) {
@@ -85,11 +81,9 @@ router.get('/api/metrics/glucose/stats', async (req, res) => {
             return res.status(401).json({ error: 'No authorization token provided' });
         }
 
-        const userId = req.user?.id || req.headers['x-user-id'];
+        const userId = req.user.userId;
         
-        if (!userId) {
-            return res.status(401).json({ error: 'User not authenticated' });
-        }
+        // User authenticated via middleware
 
         const result = await pool.query(
             `SELECT 
