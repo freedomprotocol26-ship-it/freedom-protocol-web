@@ -146,6 +146,7 @@ Be personal, warm, actionable. 300-400 words. Use mmol/L.`;
         const response = await anthropic.messages.create({
             model: 'claude-sonnet-4-20250514',
             max_tokens: 1500,
+            system: 'You are a compassionate health coach for Freedom Protocol.',
             messages: [{ role: 'user', content: prompt }]
         });
 
