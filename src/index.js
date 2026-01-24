@@ -74,7 +74,7 @@ app.post('/api/auth/signup', async (req, res) => {
 
         // Create user
         const result = await pool.query(
-            `INSERT INTO users (name, email, password, phone, created_at)
+            `INSERT INTO users (name, email, encrypted_password, phone, created_at)
              VALUES ($1, $2, $3, $4, NOW())
              RETURNING id, name, email, phone, created_at`,
             [name, email, passwordHash, phone]
@@ -118,7 +118,7 @@ app.post('/api/auth/login', async (req, res) => {
 
         // Find user
         const result = await pool.query(
-            'SELECT id, name, email, password, phone, created_at FROM users WHERE email = $1',
+            'SELECT id, name, email, encrypted_password as password, phone, created_at FROM users WHERE email = $1',
             [email]
         );
 
