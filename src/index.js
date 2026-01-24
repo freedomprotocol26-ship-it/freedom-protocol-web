@@ -16,6 +16,7 @@ const paymentRoutes = require('./routes/payment');
 const authRoutes = require('./routes/auth');
 const reportRoutes = require('./routes/report');
 const partnerRoutes = require('./routes/partner');
+const metricsRoutes = require('./routes/metrics');
 
 // Import scheduler
 const { startScheduler } = require('./scheduler/daily-checkin');
@@ -75,6 +76,7 @@ app.use('/', reportRoutes);
 
 // Partner routes (application and admin)
 app.use('/', partnerRoutes);
+app.use('/', metricsRoutes);
 
 // ===========================================
 // API ROUTES (for onboarding form)
