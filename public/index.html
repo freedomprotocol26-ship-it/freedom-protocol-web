@@ -455,7 +455,9 @@
         <div class="app-content">
             <div class="tabs">
                 <button class="tab active" onclick="showTab('dashboard')">📊 Dashboard</button>
-                <button class="tab" onclick="showTab('glucose')">📈 Log Glucose</button>
+                <button class="tab" onclick="showTab('glucose')">📈 Log Glucose<
+                                <button class="tab" onclick="showTab('coach')">🤖 AI 
+/button>
                 <button class="tab" onclick="showTab('profile')">👤 Profile</button>
             </div>
 
@@ -512,6 +514,19 @@
                     </form>
                 </div>
             </div>
+            
+            <!-- AI Coach Tab -->
+            <div id="coachTab" class="tab-content">
+                <div class="card">
+                    <h3>AI Health Coach</h3>
+                    <p style="color: var(--text-light); margin-bottom: 20px;">Get personalized coaching based on your glucose data</p>
+                    <button class="btn" onclick="getAIAnalysis()" id="analysisBtn">Get AI Coach Advice</button>
+                    <div id="aiAnalysis" style="margin-top: 20px; display: none;">
+                        <div style="background: var(--bg); padding: 20px; border-radius: 12px; line-height: 1.8;" id="analysisContent"></div>
+                    </div>
+                </div>
+            </div>
+
 
             <!-- Profile Tab -->
             <div id="profileTab" class="tab-content">
@@ -794,7 +809,36 @@
             }
         }
 
-        // Set current date/time
+// AI Coach Functions
+        async function getAIAnalysis() {
+            const btn = document.getElementById('analysisBtn');
+            btn.disabled = true;
+            btn.textContent = 'Analyzing...';
+
+            try {
+                const response = await fetch(`${API_URL}/api/chat/analysis`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('analysisContent').innerHTML = data.analysis.replace(/\n/g, '<br>');
+                    document.getElementById('aiAnalysis').style.display = 'block';
+                    btn.textContent = 'Refresh Analysis';
+                } else {
+                    alert('Failed to get AI analysis');
+                    btn.textContent = 'Get AI Coach Advice';
+                }
+            } catch (error) {
+                alert('Connection error');
+                btn.textContent = 'Get AI Coach Advice';
+            }
+
+            btn.disabled = false;
+        }
+       
+
+ // Set current date/time
         const now = new Date();
         document.getElementById('glucoseDate').value = now.toISOString().split('T')[0];
         document.getElementById('glucoseTime').value = now.toTimeString().split(':').slice(0, 2).join(':');
