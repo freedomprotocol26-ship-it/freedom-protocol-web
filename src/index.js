@@ -292,7 +292,7 @@ async function startServer() {
 
         // Drop and recreate glucose_readings table with correct structure
         await pool.query(`
-            CREATE TABLE glucose_readings (
+            CREATE TABLE IF NOT EXISTS glucose_readings (
                 id SERIAL PRIMARY KEY,
                 user_id UUID NOT NULL,
                 glucose_level DECIMAL(5,2) NOT NULL,
