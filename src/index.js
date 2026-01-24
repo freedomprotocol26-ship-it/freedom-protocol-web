@@ -287,6 +287,35 @@ async function startServer() {
                 created_at TIMESTAMP DEFAULT NOW()
             )
         `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS app_users (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                name VARCHAR(255) NOT NULL,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                phone VARCHAR(50),
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS partners (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                full_name VARCHAR(255) NOT NULL,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                phone VARCHAR(50) NOT NULL,
+                license_type VARCHAR(100) NOT NULL,
+                license_number VARCHAR(100) NOT NULL,
+                organization VARCHAR(255),
+                years_experience INTEGER,
+                why_join TEXT,
+                status VARCHAR(50) DEFAULT 'pending',
+                approved_at TIMESTAMP,
+                approved_by UUID,
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        `);
         console.log('✅ Database tables ready');
 
         app.listen(PORT, () => {
