@@ -257,6 +257,7 @@ app.use((err, req, res, next) => {
 // ============================================
 
 async function startServer() {
+        await require('./setup-db').setupDatabase();
     try {
         // Test database connection
         await pool.query('SELECT 1');
