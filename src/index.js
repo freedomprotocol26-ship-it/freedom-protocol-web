@@ -1,6 +1,6 @@
 /**
  * Freedom Protocol - Complete Backend
- * Simple, clean implementation with auth, glucose logging, and dashboard
+ * Final working version with UUID support
  */
 
 const express = require('express');
@@ -43,11 +43,7 @@ function authenticateToken(req, res, next) {
 // ============================================
 
 app.get('/api/health', (req, res) => {
-    res.json({ 
-        name: 'Freedom Protocol',
-        version: '1.0.0',
-        status: 'running'
-    });
+    res.json({ status: 'ok', message: 'Freedom Protocol API running' });
 });
 
 // ============================================
@@ -64,7 +60,11 @@ app.post('/api/auth/signup', async (req, res) => {
         }
 
         // Check if user exists
-        const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+        const existing = await pool.query(
+            'SELECT id FROM users WHERE email = $1 LIMIT 1',
+            [email]
+        );
+        
         if (existing.rows.length > 0) {
             return res.status(409).json({ error: 'Email already registered' });
         }
@@ -72,11 +72,12 @@ app.post('/api/auth/signup', async (req, res) => {
         // Hash password
         const passwordHash = await bcrypt.hash(password, 10);
 
-        // Create user
+        // Create user with explicit UUID
         const result = await pool.query(
-            `INSERT INTO users (id, name, email, encrypted_password, phone, created_at) VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW())
+            `INSERT INTO users (id, name, email, encrypted_password, phone, created_at) 
+             VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW())
              RETURNING id, name, email, phone, created_at`,
-            [name, email, passwordHash, phone]
+            [name, email, passwordHash, phone || null]
         );
 
         const user = result.rows[0];
@@ -102,7 +103,10 @@ app.post('/api/auth/signup', async (req, res) => {
 
     } catch (error) {
         console.error('Signup error:', error);
-        res.status(500).json({ error: 'Failed to create account' });
+        res.status(500).json({ 
+            error: 'Failed to create account',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 });
 
@@ -117,7 +121,7 @@ app.post('/api/auth/login', async (req, res) => {
 
         // Find user
         const result = await pool.query(
-            'SELECT id, name, email, encrypted_password as password, phone, created_at FROM users WHERE email = $1',
+            'SELECT id, name, email, encrypted_password, phone, created_at FROM users WHERE email = $1 LIMIT 1',
             [email]
         );
 
@@ -128,7 +132,7 @@ app.post('/api/auth/login', async (req, res) => {
         const user = result.rows[0];
 
         // Verify password
-        const validPassword = await bcrypt.compare(password, user.password);
+        const validPassword = await bcrypt.compare(password, user.encrypted_password);
         if (!validPassword) {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
@@ -202,7 +206,7 @@ app.post('/api/metrics/glucose', authenticateToken, async (req, res) => {
             `INSERT INTO glucose_readings (user_id, glucose_level, measured_at, notes, created_at)
              VALUES ($1, $2, $3, $4, NOW())
              RETURNING *`,
-            [req.user.userId, glucose_level, measured_at, notes]
+            [req.user.userId, glucose_level, measured_at, notes || null]
         );
 
         res.json({
@@ -213,7 +217,10 @@ app.post('/api/metrics/glucose', authenticateToken, async (req, res) => {
 
     } catch (error) {
         console.error('Glucose logging error:', error);
-        res.status(500).json({ error: 'Failed to log glucose reading', details: error.message });
+        res.status(500).json({ 
+            error: 'Failed to log glucose reading',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 });
 
@@ -223,7 +230,8 @@ app.get('/api/metrics/glucose', authenticateToken, async (req, res) => {
         const result = await pool.query(
             `SELECT * FROM glucose_readings 
              WHERE user_id = $1 
-             ORDER BY measured_at DESC`,
+             ORDER BY measured_at DESC
+             LIMIT 100`,
             [req.user.userId]
         );
 
@@ -237,6 +245,13 @@ app.get('/api/metrics/glucose', authenticateToken, async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch glucose readings' });
     }
 });
+
+// ============================================
+// PARTNER ROUTES (Keep existing)
+// ============================================
+
+const partnerRoutes = require('./routes/partner');
+app.use('/', partnerRoutes);
 
 // ============================================
 // ERROR HANDLING
@@ -256,18 +271,30 @@ app.use((err, req, res, next) => {
 // ============================================
 
 async function startServer() {
-        await require('./setup-db').setupDatabase();
     try {
         // Test database connection
         await pool.query('SELECT 1');
         console.log('✅ Database connected');
+
+        // Ensure glucose_readings table exists with correct structure
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS glucose_readings (
+                id SERIAL PRIMARY KEY,
+                user_id UUID NOT NULL,
+                glucose_level DECIMAL(5,2) NOT NULL,
+                measured_at TIMESTAMP NOT NULL,
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        `);
+        console.log('✅ Database tables ready');
 
         app.listen(PORT, () => {
             console.log(`
 ╔════════════════════════════════════════════╗
 ║  Freedom Protocol Server Running           ║
 ║  Port: ${PORT}                                  ║
-║  Status: Ready                             ║
+║  Status: Ready ✅                           ║
 ╚════════════════════════════════════════════╝
             `);
         });
