@@ -61,7 +61,7 @@ app.post('/api/auth/signup', async (req, res) => {
 
         // Check if user exists
         const existing = await pool.query(
-            'SELECT id FROM users WHERE email = $1 LIMIT 1',
+            'SELECT id FROM app_users WHERE email = $1 LIMIT 1',
             [email]
         );
         
@@ -74,7 +74,7 @@ app.post('/api/auth/signup', async (req, res) => {
 
         // Create user with explicit UUID
         const result = await pool.query(
-            `INSERT INTO users (id, name, email, encrypted_password, phone, created_at) 
+            `INSERT INTO app_users (id, name, email, password_hash, phone, created_at) 
              VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW())
              RETURNING id, name, email, phone, created_at`,
             [name, email, passwordHash, phone || null]
@@ -121,7 +121,7 @@ app.post('/api/auth/login', async (req, res) => {
 
         // Find user
         const result = await pool.query(
-            'SELECT id, name, email, encrypted_password, phone, created_at FROM users WHERE email = $1 LIMIT 1',
+            'SELECT id, name, email, password_hash, phone, created_at FROM app_users WHERE email = $1 LIMIT 1',
             [email]
         );
 
@@ -132,7 +132,7 @@ app.post('/api/auth/login', async (req, res) => {
         const user = result.rows[0];
 
         // Verify password
-        const validPassword = await bcrypt.compare(password, user.encrypted_password);
+        const validPassword = await bcrypt.compare(password, user.password_hash);
         if (!validPassword) {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
@@ -170,7 +170,7 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/user/profile', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query(
-            'SELECT id, name, email, phone, created_at FROM users WHERE id = $1',
+            'SELECT id, name, email, phone, created_at FROM app_users WHERE id = $1',
             [req.user.userId]
         );
 
