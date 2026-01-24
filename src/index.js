@@ -74,8 +74,7 @@ app.post('/api/auth/signup', async (req, res) => {
 
         // Create user
         const result = await pool.query(
-            `INSERT INTO users (name, email, encrypted_password, phone, created_at)
-             VALUES ($1, $2, $3, $4, NOW())
+            `INSERT INTO users (id, name, email, encrypted_password, phone, created_at) VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW())
              RETURNING id, name, email, phone, created_at`,
             [name, email, passwordHash, phone]
         );
