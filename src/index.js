@@ -391,6 +391,23 @@ async function startServer() {
                 created_at TIMESTAMP DEFAULT NOW()
             )
         `);
+
+        // Create conversations table for AI coaching
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS conversations (
+                id SERIAL PRIMARY KEY,
+                user_id UUID NOT NULL REFERENCES app_users(id),
+                user_message TEXT NOT NULL,
+                ai_response TEXT NOT NULL,
+                explanation TEXT,
+                doctor_notes TEXT,
+                reviewed_by UUID,
+                reviewed_at TIMESTAMP,
+                needs_review BOOLEAN DEFAULT true,
+                approved BOOLEAN DEFAULT false,
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        `);
         console.log('✅ Database tables ready');
 
         app.listen(PORT, () => {
