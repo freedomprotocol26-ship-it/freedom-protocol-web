@@ -6,6 +6,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { pool } = require('../db');
 const interpretProtocol = require('../protocol/interpretProtocol');
 const logViolation = require('../protocol/logViolation');
+const { enforceProtocol } = require('../protocol/enforceProtocol');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
@@ -78,6 +79,23 @@ router.post('/api/chat', authenticateToken, async (req, res) => {
       glucoseReadings,
       context
     });
+// ─────────────────────────────
+// ENFORCEMENT CHECK (HARD STOP)
+// ─────────────────────────────
+const enforcement = await enforceProtocol({
+  userId: req.user.userId,
+  phase: protocolResult.phase,
+  phaseStartDate: protocolResult.phaseStartDate
+});
+
+if (enforcement.enforced) {
+  return res.json({
+    success: false,
+    enforcement: true,
+    action: enforcement.action,
+    message: enforcement.message_for_user
+  });
+}
 
     /* ----------------------------------------------
        STEP 2: HANDLE VIOLATIONS (NO AI YET)
