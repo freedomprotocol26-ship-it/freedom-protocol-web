@@ -1,50 +1,99 @@
 /**
- * Freedom Protocol — Deterministic Protocol Engine
+ * Freedom Protocol — Central Deterministic Engine
+ * This orchestrates:
+ * - interpretation
+ * - enforcement
+ * - violation handling
+ * - phase progression
  *
- * This is the SINGLE source of truth for:
- * - interpreting user input
- * - enforcing protocol rules
- * - logging violations
- * - producing user-safe summaries
- *
- * AI is NOT allowed to make decisions here.
+ * NO AI LOGIC LIVES HERE
  */
 
 const interpretProtocol = require('./interpretProtocol');
 const enforceProtocol = require('./enforceProtocol');
-const protocolSummary = require('./protocolSummary');
-const logViolation = require('./logViolation');
+const { logViolation } = require('./logViolation');
+const {
+  evaluateViolations,
+  evaluatePhaseProgression
+} = require('./progressionEngine');
 
-module.exports = async function protocolEngine({
+/**
+ * Main protocol execution pipeline
+ */
+async function runProtocol({
+  userId,
+  userProfile,
   userInput,
-  userContext,
-  db
+  phase,
+  stats // { violationCount, daysCompleted, avgFastingGlucose }
 }) {
-  // 1. Interpret user intent
-  const interpretation = interpretProtocol(userInput, userContext);
+  // 1️⃣ Interpret user input
+  const interpretation = interpretProtocol({
+    input: userInput,
+    phase,
+    userProfile
+  });
 
-  // 2. Enforce protocol rules
-  const enforcement = enforceProtocol(interpretation, userContext);
+  // 2️⃣ Enforce protocol rules
+  const enforcement = enforceProtocol({
+    interpretation,
+    phase,
+    userProfile
+  });
 
-  // 3. Persist violations (ONLY if blocked)
-  if (!enforcement.allowed) {
+  let violationOutcome = null;
+
+  // 3️⃣ If violation occurred → log it
+  if (enforcement.violation) {
     await logViolation({
-      userId: userContext.userId,
-      phase: userContext.currentPhase,
-      day: userContext.currentDay,
-      severity: enforcement.severity,
-      category: enforcement.category,
-      description: enforcement.reason,
-      db
+      userId,
+      phase,
+      severity: enforcement.violation.severity,
+      category: enforcement.violation.category,
+      description: enforcement.violation.description,
+      foodConsumed: enforcement.violation.foods || [],
+      glucoseImpact: enforcement.violation.glucoseImpact || null,
+      aiResponse: enforcement.message,
+      consequenceApplied: 'pending'
+    });
+
+    // 4️⃣ Evaluate violation thresholds
+    violationOutcome = evaluateViolations({
+      userId,
+      phase,
+      violationCount: stats.violationCount + 1,
+      latestViolation: enforcement.violation
     });
   }
 
-  // 4. Generate user-facing explanation
-  const summary = protocolSummary(enforcement, userContext);
+  // 5️⃣ Evaluate phase progression (only if no critical reset)
+  let progressionOutcome = null;
 
+  if (!violationOutcome || violationOutcome.action !== 'RESTART_PHASE') {
+    progressionOutcome = evaluatePhaseProgression({
+      phase,
+      daysCompleted: stats.daysCompleted,
+      avgFastingGlucose: stats.avgFastingGlucose,
+      violationCount: stats.violationCount
+    });
+  }
+
+  // 6️⃣ Final deterministic response
   return {
-    interpretation,
-    enforcement,
-    summary
+    allowed: enforcement.allowed,
+    message: enforcement.message,
+    violation: enforcement.violation || null,
+
+    violationOutcome: violationOutcome || {
+      action: 'NONE'
+    },
+
+    progressionOutcome: progressionOutcome || {
+      canProgress: false
+    }
   };
+}
+
+module.exports = {
+  runProtocol
 };
