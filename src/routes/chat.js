@@ -1,178 +1,106 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const Anthropic = require('@anthropic-ai/sdk');
-
 const { pool } = require('../db');
-const protocolEngine = require('../protocol/protocolEngine');
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-});
+const { runProtocol } = require('../protocol/protocolEngine');
+const { getProtocolSummary } = require('../protocol/protocolSummary');
 
-/* ===========================
-   AUTH MIDDLEWARE
-=========================== */
+/**
+ * Auth middleware
+ */
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
-  if (!token) {
-    return res.status(401).json({ error: 'Access token required' });
-  }
+  if (!token) return res.status(401).json({ error: 'Token required' });
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Invalid or expired token' });
-    }
+    if (err) return res.status(403).json({ error: 'Invalid token' });
     req.user = user;
     next();
   });
 }
 
-/* ===========================
-   CHAT ENDPOINT
-=========================== */
+/**
+ * Main protocol-aware chat endpoint
+ */
 router.post('/api/chat', authenticateToken, async (req, res) => {
   try {
-    const { message, context = {} } = req.body;
+    const { message } = req.body;
+    const userId = req.user.userId;
 
     if (!message) {
-      return res.status(400).json({ error: 'Message is required' });
+      return res.status(400).json({ error: 'Message required' });
     }
 
-    /* ---------------------------------
-       1️⃣ Load user profile
-    ---------------------------------- */
+    // 1️⃣ Load user profile + protocol state
     const userResult = await pool.query(
-      `SELECT id, name FROM app_users WHERE id = $1`,
-      [req.user.userId]
+      `SELECT current_phase, protocol_start_date 
+       FROM app_users WHERE id = $1`,
+      [userId]
     );
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const user = userResult.rows[0];
+    const phase = userResult.rows[0].current_phase || 1;
 
-    /* ---------------------------------
-       2️⃣ Run PROTOCOL ENGINE
-    ---------------------------------- */
-    const protocolDecision = await protocolEngine({
-      userId: user.id,
-      userMessage: message,
-      context
-    });
-
-    /**
-     * protocolDecision shape:
-     * {
-     *   allowed: boolean,
-     *   severity: 'none' | 'minor' | 'major' | 'critical',
-     *   message: string,
-     *   userFacingSummary: string,
-     *   violationLogged: boolean
-     * }
-     */
-
-    /* ---------------------------------
-       3️⃣ BLOCKED RESPONSE (NO CLAUDE)
-    ---------------------------------- */
-    if (!protocolDecision.allowed) {
-      await pool.query(
-        `INSERT INTO conversations
-         (user_id, user_message, ai_response, needs_review, created_at)
-         VALUES ($1, $2, $3, true, NOW())`,
-        [
-          user.id,
-          message,
-          protocolDecision.userFacingSummary
-        ]
-      );
-
-      return res.json({
-        success: true,
-        blocked: true,
-        response: protocolDecision.userFacingSummary,
-        severity: protocolDecision.severity
-      });
-    }
-
-    /* ---------------------------------
-       4️⃣ SAFE CONTEXT FOR CLAUDE
-    ---------------------------------- */
-    const systemPrompt = `
-You are the Freedom Protocol AI Coach.
-
-CRITICAL RULES:
-- You do NOT make medical decisions.
-- You do NOT approve forbidden foods or behaviors.
-- You ONLY explain and reinforce protocol guidance.
-- You MUST follow the provided protocol decision.
-
-Protocol Decision Summary:
-${protocolDecision.userFacingSummary}
-
-Tone:
-- Supportive but firm
-- Educational
-- Clear
-- No shaming
-- No flexibility beyond protocol
-`;
-
-    /* ---------------------------------
-       5️⃣ CALL CLAUDE (EXPLANATION ONLY)
-    ---------------------------------- */
-    const aiResponse = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 500,
-      system: systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: message
-        }
-      ]
-    });
-
-    const finalReply = aiResponse.content[0].text;
-
-    /* ---------------------------------
-       6️⃣ SAVE CONVERSATION
-    ---------------------------------- */
-    await pool.query(
-      `INSERT INTO conversations
-       (user_id, user_message, ai_response, needs_review, created_at)
-       VALUES ($1, $2, $3, true, NOW())`,
-      [
-        user.id,
-        message,
-        finalReply
-      ]
+    // 2️⃣ Fetch stats for decision-making
+    const statsResult = await pool.query(
+      `SELECT 
+         COUNT(*) FILTER (WHERE severity IN ('critical','major')) AS violations,
+         COUNT(DISTINCT date) AS days_completed,
+         AVG(glucose_level) FILTER (WHERE context = 'fasting') AS avg_fasting
+       FROM protocol_violations
+       LEFT JOIN glucose_readings ON glucose_readings.user_id = $1
+       WHERE protocol_violations.user_id = $1`,
+      [userId]
     );
 
-    /* ---------------------------------
-       7️⃣ RETURN RESPONSE
-    ---------------------------------- */
+    const stats = {
+      violationCount: parseInt(statsResult.rows[0].violations || 0),
+      daysCompleted: parseInt(statsResult.rows[0].days_completed || 0),
+      avgFastingGlucose: parseFloat(statsResult.rows[0].avg_fasting || null)
+    };
+
+    // 3️⃣ Run deterministic protocol engine
+    const outcome = await runProtocol({
+      userId,
+      userProfile: {}, // can be expanded later
+      userInput: message,
+      phase,
+      stats
+    });
+
+    // 4️⃣ Build protocol visibility summary
+    const protocolSummary = getProtocolSummary({
+      phase,
+      stats,
+      outcome
+    });
+
+    // 5️⃣ Respond to user
     res.json({
       success: true,
-      blocked: false,
-      response: finalReply
+      allowed: outcome.allowed,
+      message: outcome.message,
+      violation: outcome.violation,
+      violationOutcome: outcome.violationOutcome,
+      progressionOutcome: outcome.progressionOutcome,
+      protocolSummary
     });
 
   } catch (error) {
-    console.error('Chat error:', error);
+    console.error('Protocol chat error:', error);
     res.status(500).json({
-      error: 'Chat processing failed',
+      error: 'Protocol processing failed',
       details: process.env.NODE_ENV === 'development'
         ? error.message
-        : 'Please try again later'
+        : undefined
     });
   }
 });
 
-/* ===========================
-   EXPORT ROUTER
-=========================== */
 module.exports = router;
