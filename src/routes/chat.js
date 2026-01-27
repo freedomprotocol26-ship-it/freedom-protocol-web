@@ -1,106 +1,145 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const Anthropic = require('@anthropic-ai/sdk');
+
 const { pool } = require('../db');
+const protocolEngine = require('../protocol/protocolEngine');
+const { formatProtocolOutcome } = require('../protocol/protocolOutcomeFormatter');
 
-const { runProtocol } = require('../protocol/protocolEngine');
-const { getProtocolSummary } = require('../protocol/protocolSummary');
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY
+});
 
-/**
- * Auth middleware
- */
+/* ---------------- AUTH ---------------- */
+
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
-  if (!token) return res.status(401).json({ error: 'Token required' });
+  if (!token) {
+    return res.status(401).json({ error: 'Access token required' });
+  }
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ error: 'Invalid token' });
+    if (err) {
+      return res.status(403).json({ error: 'Invalid or expired token' });
+    }
     req.user = user;
     next();
   });
 }
 
-/**
- * Main protocol-aware chat endpoint
- */
+/* ---------------- HELPERS ---------------- */
+
+async function getUserContext(userId) {
+  const user = await pool.query(
+    'SELECT id, name FROM app_users WHERE id = $1',
+    [userId]
+  );
+
+  const glucose = await pool.query(
+    `SELECT glucose_level, measured_at
+     FROM glucose_readings
+     WHERE user_id = $1
+     ORDER BY measured_at DESC
+     LIMIT 10`,
+    [userId]
+  );
+
+  return {
+    user: user.rows[0],
+    glucose: glucose.rows
+  };
+}
+
+/* ---------------- CHAT ---------------- */
+
 router.post('/api/chat', authenticateToken, async (req, res) => {
   try {
     const { message } = req.body;
-    const userId = req.user.userId;
-
     if (!message) {
       return res.status(400).json({ error: 'Message required' });
     }
 
-    // 1️⃣ Load user profile + protocol state
-    const userResult = await pool.query(
-      `SELECT current_phase, protocol_start_date 
-       FROM app_users WHERE id = $1`,
-      [userId]
-    );
+    const context = await getUserContext(req.user.userId);
 
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+    /* 1️⃣ Run protocol FIRST (deterministic) */
+    const protocolResult = await protocolEngine({
+      userId: req.user.userId,
+      message,
+      context
+    });
+
+    /* 2️⃣ Ask AI ONLY if allowed */
+    let aiResponseText = protocolResult.responseText;
+
+    if (protocolResult.allowAI === true) {
+      const aiResponse = await anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 400,
+        system: protocolResult.systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: protocolResult.aiPrompt
+          }
+        ]
+      });
+
+      aiResponseText = aiResponse.content[0].text;
     }
 
-    const phase = userResult.rows[0].current_phase || 1;
+    /* 3️⃣ Format visible protocol outcome */
+    const protocolStatus = formatProtocolOutcome({
+      phase: protocolResult.phase,
+      stats: protocolResult.stats,
+      decision: protocolResult.decision
+    });
 
-    // 2️⃣ Fetch stats for decision-making
-    const statsResult = await pool.query(
-      `SELECT 
-         COUNT(*) FILTER (WHERE severity IN ('critical','major')) AS violations,
-         COUNT(DISTINCT date) AS days_completed,
-         AVG(glucose_level) FILTER (WHERE context = 'fasting') AS avg_fasting
-       FROM protocol_violations
-       LEFT JOIN glucose_readings ON glucose_readings.user_id = $1
-       WHERE protocol_violations.user_id = $1`,
-      [userId]
+    const finalResponse = `
+${aiResponseText}
+
+${protocolStatus}
+`;
+
+    /* 4️⃣ Persist conversation */
+    await pool.query(
+      `INSERT INTO conversations
+       (user_id, user_message, ai_response, created_at, needs_review)
+       VALUES ($1, $2, $3, NOW(), true)`,
+      [req.user.userId, message, finalResponse]
     );
 
-    const stats = {
-      violationCount: parseInt(statsResult.rows[0].violations || 0),
-      daysCompleted: parseInt(statsResult.rows[0].days_completed || 0),
-      avgFastingGlucose: parseFloat(statsResult.rows[0].avg_fasting || null)
-    };
-
-    // 3️⃣ Run deterministic protocol engine
-    const outcome = await runProtocol({
-      userId,
-      userProfile: {}, // can be expanded later
-      userInput: message,
-      phase,
-      stats
-    });
-
-    // 4️⃣ Build protocol visibility summary
-    const protocolSummary = getProtocolSummary({
-      phase,
-      stats,
-      outcome
-    });
-
-    // 5️⃣ Respond to user
     res.json({
       success: true,
-      allowed: outcome.allowed,
-      message: outcome.message,
-      violation: outcome.violation,
-      violationOutcome: outcome.violationOutcome,
-      progressionOutcome: outcome.progressionOutcome,
-      protocolSummary
+      reply: finalResponse
     });
 
   } catch (error) {
-    console.error('Protocol chat error:', error);
+    console.error('Chat error:', error);
     res.status(500).json({
-      error: 'Protocol processing failed',
+      error: 'Chat processing failed',
       details: process.env.NODE_ENV === 'development'
         ? error.message
-        : undefined
+        : 'Please try again later'
     });
   }
+});
+
+/* ---------------- HISTORY ---------------- */
+
+router.get('/api/chat/history', authenticateToken, async (req, res) => {
+  const result = await pool.query(
+    `SELECT user_message, ai_response, created_at
+     FROM conversations
+     WHERE user_id = $1
+     ORDER BY created_at DESC
+     LIMIT 50`,
+    [req.user.userId]
+  );
+
+  res.json({ success: true, conversations: result.rows });
 });
 
 module.exports = router;
