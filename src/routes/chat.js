@@ -4,17 +4,15 @@ const jwt = require('jsonwebtoken');
 const Anthropic = require('@anthropic-ai/sdk');
 
 const { pool } = require('../db');
-const interpretProtocol = require('../protocol/interpretProtocol');
-const logViolation = require('../protocol/logViolation');
-const { enforceProtocol } = require('../protocol/enforceProtocol');
+const protocolEngine = require('../protocol/protocolEngine');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
 });
 
-/* ======================================================
+/* ===========================
    AUTH MIDDLEWARE
-====================================================== */
+=========================== */
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -32,123 +30,104 @@ function authenticateToken(req, res, next) {
   });
 }
 
-/* ======================================================
-   HELPERS
-====================================================== */
-async function getUserProfile(userId) {
-  const { rows } = await pool.query(
-    `SELECT id, name, created_at FROM app_users WHERE id = $1`,
-    [userId]
-  );
-  return rows[0];
-}
-
-async function getRecentGlucose(userId) {
-  const { rows } = await pool.query(
-    `SELECT glucose_level, measured_at 
-     FROM glucose_readings 
-     WHERE user_id = $1 
-     ORDER BY measured_at DESC 
-     LIMIT 10`,
-    [userId]
-  );
-  return rows;
-}
-
-/* ======================================================
-   MAIN CHAT ENDPOINT (PROTOCOL-FIRST)
-====================================================== */
+/* ===========================
+   CHAT ENDPOINT
+=========================== */
 router.post('/api/chat', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.userId;
-    const { message, context } = req.body;
+    const { message, context = {} } = req.body;
 
     if (!message) {
-      return res.status(400).json({ error: 'Message required' });
+      return res.status(400).json({ error: 'Message is required' });
     }
 
-    const user = await getUserProfile(userId);
-    const glucoseReadings = await getRecentGlucose(userId);
+    /* ---------------------------------
+       1️⃣ Load user profile
+    ---------------------------------- */
+    const userResult = await pool.query(
+      `SELECT id, name FROM app_users WHERE id = $1`,
+      [req.user.userId]
+    );
 
-    /* ----------------------------------------------
-       STEP 1: INTERPRET MESSAGE THROUGH PROTOCOL
-    ---------------------------------------------- */
-    const protocolResult = interpretProtocol({
-      userId,
-      message,
-      glucoseReadings,
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const user = userResult.rows[0];
+
+    /* ---------------------------------
+       2️⃣ Run PROTOCOL ENGINE
+    ---------------------------------- */
+    const protocolDecision = await protocolEngine({
+      userId: user.id,
+      userMessage: message,
       context
     });
-// ─────────────────────────────
-// ENFORCEMENT CHECK (HARD STOP)
-// ─────────────────────────────
-const enforcement = await enforceProtocol({
-  userId: req.user.userId,
-  phase: protocolResult.phase,
-  phaseStartDate: protocolResult.phaseStartDate
-});
 
-if (enforcement.enforced) {
-  return res.json({
-    success: false,
-    enforcement: true,
-    action: enforcement.action,
-    message: enforcement.message_for_user
-  });
-}
+    /**
+     * protocolDecision shape:
+     * {
+     *   allowed: boolean,
+     *   severity: 'none' | 'minor' | 'major' | 'critical',
+     *   message: string,
+     *   userFacingSummary: string,
+     *   violationLogged: boolean
+     * }
+     */
 
-    /* ----------------------------------------------
-       STEP 2: HANDLE VIOLATIONS (NO AI YET)
-    ---------------------------------------------- */
-    if (protocolResult.violation) {
-      await logViolation({
-        userId,
-        ...protocolResult.violation
-      });
+    /* ---------------------------------
+       3️⃣ BLOCKED RESPONSE (NO CLAUDE)
+    ---------------------------------- */
+    if (!protocolDecision.allowed) {
+      await pool.query(
+        `INSERT INTO conversations
+         (user_id, user_message, ai_response, needs_review, created_at)
+         VALUES ($1, $2, $3, true, NOW())`,
+        [
+          user.id,
+          message,
+          protocolDecision.userFacingSummary
+        ]
+      );
 
       return res.json({
-        success: false,
+        success: true,
         blocked: true,
-        violation: protocolResult.violation,
-        response: protocolResult.response
+        response: protocolDecision.userFacingSummary,
+        severity: protocolDecision.severity
       });
     }
 
-    /* ----------------------------------------------
-       STEP 3: SAFETY OVERRIDES
-    ---------------------------------------------- */
-    if (protocolResult.emergency) {
-      return res.json({
-        success: false,
-        emergency: true,
-        response: protocolResult.response
-      });
-    }
+    /* ---------------------------------
+       4️⃣ SAFE CONTEXT FOR CLAUDE
+    ---------------------------------- */
+    const systemPrompt = `
+You are the Freedom Protocol AI Coach.
 
-    /* ----------------------------------------------
-       STEP 4: CALL CLAUDE (STRICTLY BOUNDED)
-    ---------------------------------------------- */
+CRITICAL RULES:
+- You do NOT make medical decisions.
+- You do NOT approve forbidden foods or behaviors.
+- You ONLY explain and reinforce protocol guidance.
+- You MUST follow the provided protocol decision.
+
+Protocol Decision Summary:
+${protocolDecision.userFacingSummary}
+
+Tone:
+- Supportive but firm
+- Educational
+- Clear
+- No shaming
+- No flexibility beyond protocol
+`;
+
+    /* ---------------------------------
+       5️⃣ CALL CLAUDE (EXPLANATION ONLY)
+    ---------------------------------- */
     const aiResponse = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 500,
-      system: `
-You are Freedom Protocol AI Coach.
-
-YOU MUST OBEY:
-- Absolute rules
-- Phase rules
-- Medical safety rules
-
-You may NOT:
-- Suggest forbidden foods
-- Approve violations
-- Change medications
-- Override protocol rules
-
-If unsure, say: "This is not allowed under the Freedom Protocol."
-
-Tone: firm, supportive, culturally aware.
-      `,
+      system: systemPrompt,
       messages: [
         {
           role: 'user',
@@ -157,21 +136,29 @@ Tone: firm, supportive, culturally aware.
       ]
     });
 
-    const finalText = aiResponse.content[0].text;
+    const finalReply = aiResponse.content[0].text;
 
-    /* ----------------------------------------------
-       STEP 5: SAVE CONVERSATION
-    ---------------------------------------------- */
+    /* ---------------------------------
+       6️⃣ SAVE CONVERSATION
+    ---------------------------------- */
     await pool.query(
-      `INSERT INTO conversations 
-       (user_id, user_message, ai_response, created_at, needs_review)
-       VALUES ($1, $2, $3, NOW(), true)`,
-      [userId, message, finalText]
+      `INSERT INTO conversations
+       (user_id, user_message, ai_response, needs_review, created_at)
+       VALUES ($1, $2, $3, true, NOW())`,
+      [
+        user.id,
+        message,
+        finalReply
+      ]
     );
 
+    /* ---------------------------------
+       7️⃣ RETURN RESPONSE
+    ---------------------------------- */
     res.json({
       success: true,
-      response: finalText
+      blocked: false,
+      response: finalReply
     });
 
   } catch (error) {
@@ -180,25 +167,12 @@ Tone: firm, supportive, culturally aware.
       error: 'Chat processing failed',
       details: process.env.NODE_ENV === 'development'
         ? error.message
-        : 'Please try again'
+        : 'Please try again later'
     });
   }
 });
 
-/* ======================================================
-   HISTORY
-====================================================== */
-router.get('/api/chat/history', authenticateToken, async (req, res) => {
-  const { rows } = await pool.query(
-    `SELECT user_message, ai_response, created_at
-     FROM conversations
-     WHERE user_id = $1
-     ORDER BY created_at DESC
-     LIMIT 50`,
-    [req.user.userId]
-  );
-
-  res.json({ success: true, history: rows });
-});
-
+/* ===========================
+   EXPORT ROUTER
+=========================== */
 module.exports = router;
