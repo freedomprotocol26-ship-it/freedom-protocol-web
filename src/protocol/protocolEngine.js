@@ -1,15 +1,51 @@
 const { pool } = require('../db');
 
 /**
- * Deterministic Freedom Protocol Engine
- * ------------------------------------
- * This engine evaluates protocol status using ONLY persisted data.
- * No assumptions. No AI. No phantom columns.
+ * Freedom Protocol Engine (Authoritative)
+ * ---------------------------------------
+ * Single source of truth for protocol state.
+ * No AI. No inference. Database only.
  */
 
 async function evaluateProtocol(userId) {
-  // 1️⃣ Fetch all violations for this user
-  const result = await pool.query(
+  /**
+   * 1️⃣ Check enrollment
+   */
+  const enrollmentResult = await pool.query(
+    `
+    SELECT
+      current_phase,
+      day_in_phase,
+      active
+    FROM protocol_enrollments
+    WHERE user_id = $1
+    LIMIT 1
+    `,
+    [userId]
+  );
+
+  // Not enrolled
+  if (enrollmentResult.rows.length === 0) {
+    return {
+      enrolled: false,
+      phase: null,
+      phaseLabel: 'Not Enrolled',
+      dayInPhase: null,
+      protocolState: 'Inactive',
+      totalViolations: 0,
+      lastViolation: 'None',
+      consequence: 'None',
+      systemDecision: 'Enroll Required',
+      notes: 'User has not enrolled in the Freedom Protocol.'
+    };
+  }
+
+  const enrollment = enrollmentResult.rows[0];
+
+  /**
+   * 2️⃣ Fetch violations
+   */
+  const violationsResult = await pool.query(
     `
     SELECT
       phase,
@@ -26,41 +62,11 @@ async function evaluateProtocol(userId) {
     [userId]
   );
 
-  const violations = result.rows;
+  const violations = violationsResult.rows;
 
-  // 2️⃣ Default state (new or unenrolled user)
-  if (violations.length === 0) {
-    return {
-      phase: 1,
-      phaseLabel: 'Phase 1 — Reversal',
-      dayInPhase: 1,
-      protocolState: 'Compliant',
-      totalViolations: 0,
-      lastViolation: 'None',
-      consequence: 'None',
-      systemDecision: 'Continue Phase',
-      notes: 'No violations recorded. Stay compliant.'
-    };
-  }
-
-  // 3️⃣ Derive current phase and day
-  const latest = violations[0];
-  const currentPhase = latest.phase || 1;
-  const dayInPhase = latest.day_number || 1;
-
-  // 4️⃣ Violation counts
-  const totalViolations = violations.length;
-
-  // 5️⃣ Last violation summary
-  const lastViolation =
-    latest.description ||
-    latest.category ||
-    'Protocol violation recorded';
-
-  const consequence =
-    latest.consequence_applied || 'Warning Issued';
-
-  // 6️⃣ Determine protocol state
+  /**
+   * 3️⃣ Base state
+   */
   let protocolState = 'Compliant';
   let systemDecision = 'Continue Phase';
 
@@ -73,19 +79,35 @@ async function evaluateProtocol(userId) {
     systemDecision = 'Reset Phase';
   }
 
-  // 7️⃣ Return stable protocol snapshot
+  /**
+   * 4️⃣ Last violation summary
+   */
+  const lastViolation =
+    violations.length > 0
+      ? violations[0].description || violations[0].category || 'Violation recorded'
+      : 'None';
+
+  const consequence =
+    violations.length > 0
+      ? violations[0].consequence_applied || 'Warning Issued'
+      : 'None';
+
+  /**
+   * 5️⃣ Final snapshot
+   */
   return {
-    phase: currentPhase,
-    phaseLabel: `Phase ${currentPhase} — Reversal`,
-    dayInPhase,
+    enrolled: true,
+    phase: enrollment.current_phase,
+    phaseLabel: `Phase ${enrollment.current_phase} — Reversal`,
+    dayInPhase: enrollment.day_in_phase,
     protocolState,
-    totalViolations,
+    totalViolations: violations.length,
     lastViolation,
     consequence,
     systemDecision,
     notes:
       protocolState === 'Compliant'
-        ? 'Glucose improving. Stay strict.'
+        ? 'Stay strict. Maintain protocol discipline.'
         : 'Protocol deviation detected. Correct immediately.'
   };
 }
