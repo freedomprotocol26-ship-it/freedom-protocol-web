@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { pool } = require('../db');
 const authenticateToken = require('../middleware/authenticateToken');
 const protocolEngine = require('../protocol/protocolEngine');
+const { pool } = require('../db');
 
 /**
- * Chat endpoint (protocol-aware, deterministic)
- * ---------------------------------------------
- * No legacy formatters. No deleted imports.
+ * Protocol-aware chat endpoint
+ * ----------------------------
+ * Deterministic. No legacy formatters. No deleted imports.
  */
 
 router.post('/api/chat', authenticateToken, async (req, res) => {
@@ -19,10 +19,7 @@ router.post('/api/chat', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    // Evaluate protocol BEFORE response
-    const protocolStatus = await protocolEngine.evaluateProtocol(userId);
-
-    // Persist message (optional but stable)
+    // Persist message (safe)
     await pool.query(
       `
       INSERT INTO conversations (user_id, user_message, created_at)
@@ -30,6 +27,9 @@ router.post('/api/chat', authenticateToken, async (req, res) => {
       `,
       [userId, message]
     );
+
+    // Evaluate protocol AFTER enrollment check
+    const protocolStatus = await protocolEngine.evaluateProtocol(userId);
 
     res.json({
       success: true,
