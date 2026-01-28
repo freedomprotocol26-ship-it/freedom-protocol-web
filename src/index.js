@@ -1,429 +1,56 @@
-/**
- * Freedom Protocol - Complete Final Backend
- * Clean, working version with all features
- */
-
+require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const path = require('path');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const { pool } = require('./db');
+
+const { initDb } = require('./db/init');
+
+// Routes
+const authRoutes = require('./routes/auth');
+const chatRoutes = require('./routes/chat');
+const protocolRoutes = require('./routes/protocol');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ========================
 // Middleware
+// ========================
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// ========================
+// API ROUTES (FIRST)
+// ========================
+app.use(authRoutes);
+app.use(chatRoutes);
+app.use(protocolRoutes);
+
+// ========================
+// STATIC FRONTEND (LAST)
+// ========================
 app.use(express.static(path.join(__dirname, '../public')));
 
-// ============================================
-// AUTHENTICATION MIDDLEWARE
-// ============================================
-
-function authenticateToken(req, res, next) {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-        return res.status(401).json({ error: 'Access token required' });
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err) {
-            return res.status(403).json({ error: 'Invalid or expired token' });
-        }
-        req.user = user;
-        next();
-    });
-}
-
-// ============================================
-// HEALTH CHECK
-// ============================================
-
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Freedom Protocol API running' });
-});
-
-// ============================================
-// AUTHENTICATION ROUTES
-// ============================================
-
-// Signup
-app.post('/api/auth/signup', async (req, res) => {
-    try {
-        const { name, email, password, phone } = req.body;
-
-        if (!name || !email || !password) {
-            return res.status(400).json({ error: 'Name, email, and password are required' });
-        }
-
-        // Check if user exists
-        const existing = await pool.query(
-            'SELECT id FROM app_users WHERE email = $1 LIMIT 1',
-            [email]
-        );
-        
-        if (existing.rows.length > 0) {
-            return res.status(409).json({ error: 'Email already registered' });
-        }
-
-        // Hash password
-        const passwordHash = await bcrypt.hash(password, 10);
-
-        // Create user
-        const result = await pool.query(
-            `INSERT INTO app_users (id, name, email, password_hash, phone, created_at) 
-             VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW())
-             RETURNING id, name, email, phone, created_at`,
-            [name, email, passwordHash, phone || null]
-        );
-
-        const user = result.rows[0];
-
-        // Generate token
-        const token = jwt.sign(
-            { userId: user.id, email: user.email },
-            process.env.JWT_SECRET,
-            { expiresIn: '7d' }
-        );
-
-        res.json({
-            success: true,
-            message: 'Account created successfully',
-            token,
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                phone: user.phone
-            }
-        });
-
-    } catch (error) {
-        console.error('Signup error:', error);
-        res.status(500).json({ 
-            error: 'Failed to create account',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
-});
-
-// Login
-app.post('/api/auth/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-
-        if (!email || !password) {
-            return res.status(400).json({ error: 'Email and password are required' });
-        }
-
-        // Find user
-        const result = await pool.query(
-            'SELECT id, name, email, password_hash, phone, created_at FROM app_users WHERE email = $1 LIMIT 1',
-            [email]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(401).json({ error: 'Invalid email or password' });
-        }
-
-        const user = result.rows[0];
-
-        // Verify password
-        const validPassword = await bcrypt.compare(password, user.password_hash);
-        if (!validPassword) {
-            return res.status(401).json({ error: 'Invalid email or password' });
-        }
-
-        // Generate token
-        const token = jwt.sign(
-            { userId: user.id, email: user.email },
-            process.env.JWT_SECRET,
-            { expiresIn: '7d' }
-        );
-
-        res.json({
-            success: true,
-            message: 'Login successful',
-            token,
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                phone: user.phone,
-                created_at: user.created_at
-            }
-        });
-
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ error: 'Failed to login' });
-    }
-});
-
-// ============================================
-// USER PROFILE ROUTES
-// ============================================
-
-app.get('/api/user/profile', authenticateToken, async (req, res) => {
-    try {
-        const result = await pool.query(
-            'SELECT id, name, email, phone, created_at FROM app_users WHERE id = $1',
-            [req.user.userId]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        res.json({
-            success: true,
-            user: result.rows[0]
-        });
-
-    } catch (error) {
-        console.error('Profile error:', error);
-        res.status(500).json({ error: 'Failed to fetch profile' });
-    }
-});
-
-// ============================================
-// GLUCOSE ROUTES
-// ============================================
-
-// Log glucose reading
-app.post('/api/metrics/glucose', authenticateToken, async (req, res) => {
-    try {
-        const { glucose_level, measured_at, notes } = req.body;
-
-        if (!glucose_level || !measured_at) {
-            return res.status(400).json({ error: 'Glucose level and measurement time are required' });
-        }
-
-        const result = await pool.query(
-            `INSERT INTO glucose_readings (user_id, glucose_level, measured_at, notes, created_at)
-             VALUES ($1, $2, $3, $4, NOW())
-             RETURNING *`,
-            [req.user.userId, glucose_level, measured_at, notes || null]
-        );
-
-        res.json({
-            success: true,
-            message: 'Glucose reading logged successfully',
-            reading: result.rows[0]
-        });
-
-    } catch (error) {
-        console.error('Glucose logging error:', error);
-        res.status(500).json({ 
-            error: 'Failed to log glucose reading',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
-});
-
-// Get glucose readings
-app.get('/api/metrics/glucose', authenticateToken, async (req, res) => {
-    try {
-        const result = await pool.query(
-            `SELECT * FROM glucose_readings 
-             WHERE user_id = $1 
-             ORDER BY measured_at DESC
-             LIMIT 100`,
-            [req.user.userId]
-        );
-
-        res.json({
-            success: true,
-            readings: result.rows
-        });
-
-    } catch (error) {
-        console.error('Fetch glucose error:', error);
-        res.status(500).json({ error: 'Failed to fetch glucose readings' });
-    }
-});
-
-// ============================================
-// PARTNER ROUTES (Keep existing)
-// ============================================
-
-const partnerRoutes = require('./routes/partner');
-const chatRoutes = require('./routes/chat');
-app.use('/', partnerRoutes);
-app.use('/', chatRoutes);
-
-
-// Debug route - remove after testing
-app.get('/api/debug/env', (req, res) => {
-    res.json({
-        hasAnthropicKey: !!process.env.ANTHROPIC_API_KEY,
-        keyLength: process.env.ANTHROPIC_API_KEY ? process.env.ANTHROPIC_API_KEY.length : 0,
-        keyPrefix: process.env.ANTHROPIC_API_KEY ? process.env.ANTHROPIC_API_KEY.substring(0, 15) : 'none'
-    });
-});
-
-// ============================================
-// ERROR HANDLING
-// ============================================
-
-app.use((req, res) => {
-    res.status(404).json({ error: 'Not found' });
-});
-
-app.use((err, req, res, next) => {
-    console.error('Server error:', err);
-    res.status(500).json({ error: 'Internal server error' });
-});
-
-// ============================================
-// START SERVER
-// ============================================
-
+// ========================
+// Start server
+// ========================
 async function startServer() {
-    try {
-        // Test database connection
-        await pool.query('SELECT 1');
-        console.log('✅ Database connected');
+  try {
+    await initDb();
 
-        // Create app_users table
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS app_users (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                name VARCHAR(255) NOT NULL,
-                email VARCHAR(255) UNIQUE NOT NULL,
-                password_hash VARCHAR(255) NOT NULL,
-                phone VARCHAR(50),
-                created_at TIMESTAMP DEFAULT NOW()
-            )
-        `);
-
-        // Drop and recreate glucose_readings table with correct structure
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS glucose_readings (
-                id SERIAL PRIMARY KEY,
-                user_id UUID NOT NULL,
-                glucose_level DECIMAL(5,2) NOT NULL,
-                measured_at TIMESTAMP NOT NULL,
-                notes TEXT,
-                created_at TIMESTAMP DEFAULT NOW()
-            )
-        `);
-
-        // Create partners table
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS partners (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                full_name VARCHAR(255) NOT NULL,
-                email VARCHAR(255) UNIQUE NOT NULL,
-                phone VARCHAR(50) NOT NULL,
-                license_type VARCHAR(100) NOT NULL,
-                license_number VARCHAR(100) NOT NULL,
-                organization VARCHAR(255),
-                years_experience INTEGER,
-                why_join TEXT,
-                status VARCHAR(50) DEFAULT 'pending',
-                approved_at TIMESTAMP,
-                approved_by UUID,
-                created_at TIMESTAMP DEFAULT NOW()
-            )
-        `);
-
-        // Create partner_activity_log table
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS partner_activity_log (
-                id SERIAL PRIMARY KEY,
-                partner_id UUID REFERENCES partners(id),
-                activity_type VARCHAR(100) NOT NULL,
-                description TEXT,
-                performed_by UUID,
-                created_at TIMESTAMP DEFAULT NOW()
-            )
-        `);
-
-        // Create partner_commissions table
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS partner_commissions (
-                id SERIAL PRIMARY KEY,
-                partner_id UUID REFERENCES partners(id),
-                user_id UUID REFERENCES app_users(id),
-                amount DECIMAL(10,2) NOT NULL,
-                month VARCHAR(7) NOT NULL,
-                status VARCHAR(50) DEFAULT 'pending',
-                paid_at TIMESTAMP,
-                created_at TIMESTAMP DEFAULT NOW()
-            )
-        `);
-
-
-        // Create conversations table for AI coaching
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS conversations (
-                id SERIAL PRIMARY KEY,
-                user_id UUID NOT NULL REFERENCES app_users(id),
-                user_message TEXT NOT NULL,
-                ai_response TEXT NOT NULL,
-                explanation TEXT,
-                doctor_notes TEXT,
-                reviewed_by UUID,
-                reviewed_at TIMESTAMP,
-                needs_review BOOLEAN DEFAULT true,
-                approved BOOLEAN DEFAULT false,
-                created_at TIMESTAMP DEFAULT NOW()
-            )
-        `);
-
-        // Create conversations table for AI coaching
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS conversations (
-                id SERIAL PRIMARY KEY,
-                user_id UUID NOT NULL REFERENCES app_users(id),
-                user_message TEXT NOT NULL,
-                ai_response TEXT NOT NULL,
-                explanation TEXT,
-                doctor_notes TEXT,
-                reviewed_by UUID,
-                reviewed_at TIMESTAMP,
-                needs_review BOOLEAN DEFAULT true,
-                approved BOOLEAN DEFAULT false,
-                created_at TIMESTAMP DEFAULT NOW()
-            )
-        `);
-
-        // Create conversations table for AI coaching
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS conversations (
-                id SERIAL PRIMARY KEY,
-                user_id UUID NOT NULL REFERENCES app_users(id),
-                user_message TEXT NOT NULL,
-                ai_response TEXT NOT NULL,
-                explanation TEXT,
-                doctor_notes TEXT,
-                reviewed_by UUID,
-                reviewed_at TIMESTAMP,
-                needs_review BOOLEAN DEFAULT true,
-                approved BOOLEAN DEFAULT false,
-                created_at TIMESTAMP DEFAULT NOW()
-            )
-        `);
-        console.log('✅ Database tables ready');
-
-        app.listen(PORT, () => {
-            console.log(`
+    app.listen(PORT, () => {
+      console.log(`
 ╔════════════════════════════════════════════╗
 ║  Freedom Protocol Server Running           ║
 ║  Port: ${PORT}                                  ║
 ║  Status: Ready ✅                           ║
 ╚════════════════════════════════════════════╝
-            `);
-        });
-
-    } catch (error) {
-        console.error('❌ Failed to start:', error);
-        process.exit(1);
-    }
+      `);
+    });
+  } catch (err) {
+    console.error('❌ Failed to start server:', err);
+    process.exit(1);
+  }
 }
 
 startServer();

@@ -1,99 +1,95 @@
-/**
- * Freedom Protocol — Central Deterministic Engine
- * This orchestrates:
- * - interpretation
- * - enforcement
- * - violation handling
- * - phase progression
- *
- * NO AI LOGIC LIVES HERE
- */
-
-const interpretProtocol = require('./interpretProtocol');
-const enforceProtocol = require('./enforceProtocol');
-const { logViolation } = require('./logViolation');
-const {
-  evaluateViolations,
-  evaluatePhaseProgression
-} = require('./progressionEngine');
+const { pool } = require('../db');
 
 /**
- * Main protocol execution pipeline
+ * Deterministic Freedom Protocol Engine
+ * ------------------------------------
+ * This engine evaluates protocol status using ONLY persisted data.
+ * No assumptions. No AI. No phantom columns.
  */
-async function runProtocol({
-  userId,
-  userProfile,
-  userInput,
-  phase,
-  stats // { violationCount, daysCompleted, avgFastingGlucose }
-}) {
-  // 1️⃣ Interpret user input
-  const interpretation = interpretProtocol({
-    input: userInput,
-    phase,
-    userProfile
-  });
 
-  // 2️⃣ Enforce protocol rules
-  const enforcement = enforceProtocol({
-    interpretation,
-    phase,
-    userProfile
-  });
-
-  let violationOutcome = null;
-
-  // 3️⃣ If violation occurred → log it
-  if (enforcement.violation) {
-    await logViolation({
-      userId,
+async function evaluateProtocol(userId) {
+  // 1️⃣ Fetch all violations for this user
+  const result = await pool.query(
+    `
+    SELECT
       phase,
-      severity: enforcement.violation.severity,
-      category: enforcement.violation.category,
-      description: enforcement.violation.description,
-      foodConsumed: enforcement.violation.foods || [],
-      glucoseImpact: enforcement.violation.glucoseImpact || null,
-      aiResponse: enforcement.message,
-      consequenceApplied: 'pending'
-    });
+      day_number,
+      severity,
+      category,
+      description,
+      consequence_applied,
+      created_at
+    FROM protocol_violations
+    WHERE user_id = $1
+    ORDER BY created_at DESC
+    `,
+    [userId]
+  );
 
-    // 4️⃣ Evaluate violation thresholds
-    violationOutcome = evaluateViolations({
-      userId,
-      phase,
-      violationCount: stats.violationCount + 1,
-      latestViolation: enforcement.violation
-    });
+  const violations = result.rows;
+
+  // 2️⃣ Default state (new or unenrolled user)
+  if (violations.length === 0) {
+    return {
+      phase: 1,
+      phaseLabel: 'Phase 1 — Reversal',
+      dayInPhase: 1,
+      protocolState: 'Compliant',
+      totalViolations: 0,
+      lastViolation: 'None',
+      consequence: 'None',
+      systemDecision: 'Continue Phase',
+      notes: 'No violations recorded. Stay compliant.'
+    };
   }
 
-  // 5️⃣ Evaluate phase progression (only if no critical reset)
-  let progressionOutcome = null;
+  // 3️⃣ Derive current phase and day
+  const latest = violations[0];
+  const currentPhase = latest.phase || 1;
+  const dayInPhase = latest.day_number || 1;
 
-  if (!violationOutcome || violationOutcome.action !== 'RESTART_PHASE') {
-    progressionOutcome = evaluatePhaseProgression({
-      phase,
-      daysCompleted: stats.daysCompleted,
-      avgFastingGlucose: stats.avgFastingGlucose,
-      violationCount: stats.violationCount
-    });
+  // 4️⃣ Violation counts
+  const totalViolations = violations.length;
+
+  // 5️⃣ Last violation summary
+  const lastViolation =
+    latest.description ||
+    latest.category ||
+    'Protocol violation recorded';
+
+  const consequence =
+    latest.consequence_applied || 'Warning Issued';
+
+  // 6️⃣ Determine protocol state
+  let protocolState = 'Compliant';
+  let systemDecision = 'Continue Phase';
+
+  const severeCount = violations.filter(
+    v => v.severity && v.severity.toLowerCase() === 'severe'
+  ).length;
+
+  if (severeCount >= 2) {
+    protocolState = 'Non-Compliant';
+    systemDecision = 'Reset Phase';
   }
 
-  // 6️⃣ Final deterministic response
+  // 7️⃣ Return stable protocol snapshot
   return {
-    allowed: enforcement.allowed,
-    message: enforcement.message,
-    violation: enforcement.violation || null,
-
-    violationOutcome: violationOutcome || {
-      action: 'NONE'
-    },
-
-    progressionOutcome: progressionOutcome || {
-      canProgress: false
-    }
+    phase: currentPhase,
+    phaseLabel: `Phase ${currentPhase} — Reversal`,
+    dayInPhase,
+    protocolState,
+    totalViolations,
+    lastViolation,
+    consequence,
+    systemDecision,
+    notes:
+      protocolState === 'Compliant'
+        ? 'Glucose improving. Stay strict.'
+        : 'Protocol deviation detected. Correct immediately.'
   };
 }
 
 module.exports = {
-  runProtocol
+  evaluateProtocol
 };
