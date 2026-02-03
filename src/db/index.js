@@ -1,25 +1,22 @@
-const { Pool } = require('pg');
+const { Pool } = require("pg");
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production'
+  ssl: process.env.NODE_ENV === "production"
     ? { rejectUnauthorized: false }
     : false,
-
-  max: 5,                 // limit connections
+  max: 5,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000
+  connectionTimeoutMillis: 5000,
 });
 
-pool.on('connect', () => {
-  console.log('✅ Database connected');
+pool.on("connect", () => {
+  console.log("✅ Database connected");
 });
 
-pool.on('error', (err) => {
-  console.error('❌ Unexpected DB error', err);
+pool.on("error", (err) => {
+  console.error("❌ Unexpected DB error", err);
   process.exit(1);
 });
 
-module.exports = {
-  pool
-};
+module.exports = pool;

@@ -38,4 +38,8 @@ freedomprotocol26-ship-it*
 .DS_Store
 
 # Temporary files
+
 Freedom Protocol Logo.png
+# Environment variables
+.env
+.env.*

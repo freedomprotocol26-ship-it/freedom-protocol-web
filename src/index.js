@@ -1,56 +1,45 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
+require("dotenv").config({
+  path: require("path").resolve(__dirname, "../.env"),
+});
 
-const { initDb } = require('./db/init');
+const express = require("express");
+const cors = require("cors");
+const path = require("path");
 
-// Routes
-const authRoutes = require('./routes/auth');
-const chatRoutes = require('./routes/chat');
-const protocolRoutes = require('./routes/protocol');
+const initDb = require("./db/init");
+const authenticateToken = require("./middleware/authenticateToken");
+const requireAdmin = require("./middleware/requireAdmin");
+
+const authRoutes = require("./routes/auth");
+const adminRoutes = require("./routes/admin");
+const doctorRoutes = require("./routes/doctor");
+const episodeRoutes = require("./routes/episodes");
+const telemedicineRoutes = require("./routes/telemedicine");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ========================
-// Middleware
-// ========================
 app.use(cors());
 app.use(express.json());
 
-// ========================
-// API ROUTES (FIRST)
-// ========================
-app.use(authRoutes);
-app.use(chatRoutes);
-app.use(protocolRoutes);
+const publicPath = path.join(__dirname, "../public");
+app.use(express.static(publicPath));
 
-// ========================
-// STATIC FRONTEND (LAST)
-// ========================
-app.use(express.static(path.join(__dirname, '../public')));
+app.get("/", (req, res) => {
+  res.sendFile(path.join(publicPath, "login.html"));
+});
 
-// ========================
-// Start server
-// ========================
+app.use("/api", authRoutes);
+app.use("/api/telemedicine", telemedicineRoutes);
+app.use("/api/doctor", authenticateToken, doctorRoutes);
+app.use("/api", episodeRoutes);
+app.use("/api/admin", authenticateToken, requireAdmin, adminRoutes);
+
 async function startServer() {
-  try {
-    await initDb();
-
-    app.listen(PORT, () => {
-      console.log(`
-╔════════════════════════════════════════════╗
-║  Freedom Protocol Server Running           ║
-║  Port: ${PORT}                                  ║
-║  Status: Ready ✅                           ║
-╚════════════════════════════════════════════╝
-      `);
-    });
-  } catch (err) {
-    console.error('❌ Failed to start server:', err);
-    process.exit(1);
-  }
+  await initDb();
+  app.listen(PORT, () => {
+    console.log(`✅ Server running on port ${PORT}`);
+  });
 }
 
 startServer();

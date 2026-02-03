@@ -1,27 +1,23 @@
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 
-/**
- * Standard JWT authentication middleware
- * Used across all protected routes
- */
 function authenticateToken(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
 
   if (!token) {
-    return res.status(401).json({
-      error: 'Access token required'
-    });
+    return res
+      .status(401)
+      .json({ success: false, message: "Missing token" });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) {
-      return res.status(403).json({
-        error: 'Invalid or expired token'
-      });
+      return res
+        .status(403)
+        .json({ success: false, message: "Invalid or expired token" });
     }
 
-    req.user = user;
+    req.user = decoded; // { sub, role, sub_role }
     next();
   });
 }
