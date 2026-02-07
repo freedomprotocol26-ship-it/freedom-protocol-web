@@ -43,3 +43,7 @@ Freedom Protocol Logo.png
 # Environment variables
 .env
 .env.*
+
+.env
+node_modules
+Postman.dmg

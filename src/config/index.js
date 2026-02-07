@@ -1,30 +1,17 @@
-require('dotenv').config();
+require("dotenv").config();
 
 module.exports = {
-  port: process.env.PORT || 3000,
-  nodeEnv: process.env.NODE_ENV || 'development',
-  
-  // Database (nested for compatibility)
-  database: {
-    url: process.env.DATABASE_URL
+  app: {
+    baseUrl: process.env.APP_BASE_URL || "http://localhost:3000",
   },
-  databaseUrl: process.env.DATABASE_URL,
-  supabaseUrl: process.env.SUPABASE_URL,
-  supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
-  
-  // Authentication
-  jwtSecret: process.env.JWT_SECRET,
-  
-  // AI
-  anthropicApiKey: process.env.ANTHROPIC_API_KEY,
-  
-  // WhatsApp (optional)
-  whatsapp: {
-    accessToken: process.env.WHATSAPP_ACCESS_TOKEN || '',
-    phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || '',
-    verifyToken: process.env.WHATSAPP_VERIFY_TOKEN || 'freedom-protocol-verify'
+
+  paystack: {
+    secretKey: process.env.PAYSTACK_SECRET_KEY || "sk_test_dummy",
+    publicKey: process.env.PAYSTACK_PUBLIC_KEY || "pk_test_dummy",
   },
-  
-  // Payment (optional)
-  paystackSecretKey: process.env.PAYSTACK_SECRET_KEY || ''
+
+  jwt: {
+    secret: process.env.JWT_SECRET || "dev_secret",
+    expiresIn: "7d",
+  },
 };
