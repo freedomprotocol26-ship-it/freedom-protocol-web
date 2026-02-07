@@ -7,6 +7,9 @@ const app = express();
 app.use(express.json());
 app.use("/patients", patientRoutes);
 app.use("/auth", authRoutes);
+const subscriptionRoutes = require("./modules/subscriptions/subscription.routes");
+app.use("/subscriptions", subscriptionRoutes);
+
 
 
 app.get("/health", async (req, res) => {
