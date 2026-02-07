@@ -1,63 +1,32 @@
-/**
- * Freedom Protocol - Authentication Controller
- * HTTP handlers for authentication endpoints
- */
+const bcrypt = require("bcrypt");
+const pool = require("../db");
 
-const authService = require('../services/auth.service');
-const controllerErrorHandler = require('./controllerErrorHandler');
+exports.registerDoctor = async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-/**
- * Login user
- * POST /auth/login
- */
-const login = controllerErrorHandler(async (req, res) => {
-  const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password required" });
+    }
 
-  const result = await authService.login(email, password);
+    const hashed = await bcrypt.hash(password, 10);
 
-  res.status(200).json({
-    success: true,
-    message: 'Login successful',
-    data: result,
-    timestamp: new Date().toISOString()
-  });
-});
+    const result = await pool.query(
+      `INSERT INTO users (email, password_hash, role)
+       VALUES ($1,$2,'doctor')
+       RETURNING id,email,role`,
+      [email, hashed]
+    );
 
-/**
- * Refresh access token
- * POST /auth/refresh
- */
-const refresh = controllerErrorHandler(async (req, res) => {
-  const { refreshToken } = req.body;
+    res.status(201).json({
+      success: true,
+      user: result.rows[0]
+    });
+  } catch (err) {
+    if (err.code === "23505") {
+      return res.status(400).json({ error: "Email already exists" });
+    }
 
-  const result = await authService.refreshAccessToken(refreshToken);
-
-  res.status(200).json({
-    success: true,
-    message: 'Token refreshed successfully',
-    data: result,
-    timestamp: new Date().toISOString()
-  });
-});
-
-/**
- * Logout user
- * POST /auth/logout
- */
-const logout = controllerErrorHandler(async (req, res) => {
-  const { refreshToken } = req.body;
-
-  await authService.logout(refreshToken);
-
-  res.status(200).json({
-    success: true,
-    message: 'Logged out successfully',
-    timestamp: new Date().toISOString()
-  });
-});
-
-module.exports = {
-  login,
-  refresh,
-  logout
+    res.status(500).json({ error: err.message });
+  }
 };
