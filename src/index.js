@@ -1,9 +1,11 @@
 const authRoutes = require("./routes/auth");
 const express = require("express");
 const pool = require("./db");
+const patientRoutes = require("./routes/patient");
 
 const app = express();
 app.use(express.json());
+app.use("/patients", patientRoutes);
 app.use("/auth", authRoutes);
 
 

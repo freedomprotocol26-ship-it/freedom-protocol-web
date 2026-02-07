@@ -1,119 +1,32 @@
-const patientService = require('../services/patient.service');
+const bcrypt = require("bcrypt");
+const pool = require("../db");
 
-function getUser(req) {
-  return {
-    userId: req.user?.userId,
-    role: req.user?.role
-  };
-}
-
-function handleError(res, error) {
-  res.status(error.status || 500).json({
-    success: false,
-    error: error.message || 'Server error'
-  });
-}
-
-async function createPatient(req, res) {
+exports.createPatient = async (req, res) => {
   try {
-    const patient = await patientService.createPatient(getUser(req), req.body);
+    if (req.user.role !== "doctor") {
+      return res.status(403).json({ error: "Only doctors can create patients" });
+    }
+
+    const { email, temporaryPassword } = req.body;
+
+    const hashed = await bcrypt.hash(temporaryPassword, 10);
+
+    const result = await pool.query(
+      `INSERT INTO users (email, password_hash, role)
+       VALUES ($1,$2,'patient')
+       RETURNING id,email,role`,
+      [email, hashed]
+    );
+
     res.status(201).json({
       success: true,
-      data: patient
+      patient: result.rows[0]
     });
   } catch (err) {
-    handleError(res, err);
-  }
-}
+    if (err.code === "23505") {
+      return res.status(400).json({ error: "Email already exists" });
+    }
 
-async function listPatients(req, res) {
-  try {
-    const patients = await patientService.listPatients(getUser(req));
-    res.json({
-      success: true,
-      data: patients
-    });
-  } catch (err) {
-    handleError(res, err);
+    res.status(500).json({ error: err.message });
   }
-}
-
-async function getPatientById(req, res) {
-  try {
-    const patient = await patientService.getPatientById(
-      getUser(req),
-      req.params.id
-    );
-    res.json({
-      success: true,
-      data: patient
-    });
-  } catch (err) {
-    handleError(res, err);
-  }
-}
-
-async function updatePatient(req, res) {
-  try {
-    const patient = await patientService.updatePatient(
-      getUser(req),
-      req.params.id,
-      req.body
-    );
-    res.json({
-      success: true,
-      data: patient
-    });
-  } catch (err) {
-    handleError(res, err);
-  }
-}
-
-async function deletePatient(req, res) {
-  try {
-    const patient = await patientService.deletePatient(
-      getUser(req),
-      req.params.id
-    );
-    res.json({
-      success: true,
-      data: patient
-    });
-  } catch (err) {
-    handleError(res, err);
-  }
-}
-
-async function getMe(req, res) {
-  try {
-    const patient = await patientService.getMe(getUser(req));
-    res.json({
-      success: true,
-      data: patient
-    });
-  } catch (err) {
-    handleError(res, err);
-  }
-}
-
-async function updateMe(req, res) {
-  try {
-    const patient = await patientService.updateMe(getUser(req), req.body);
-    res.json({
-      success: true,
-      data: patient
-    });
-  } catch (err) {
-    handleError(res, err);
-  }
-}
-
-module.exports = {
-  createPatient,
-  listPatients,
-  getPatientById,
-  updatePatient,
-  deletePatient,
-  getMe,
-  updateMe
 };
