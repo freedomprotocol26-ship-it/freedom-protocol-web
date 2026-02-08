@@ -5,7 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const facilityController = require('./facility.controller');
-const { authenticateJWT } = require('../../middleware/auth');
+const authenticateJWT = require('../../middleware/auth');
 
 router.post(
   '/',
