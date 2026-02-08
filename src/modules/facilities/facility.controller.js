@@ -9,16 +9,6 @@ const controllerErrorHandler = require('../../controllers/controllerErrorHandler
 
 /**
  * Create facility
- * POST /facilities
- * 
- * Body:
- * {
- *   "ownerUserId": "uuid-here",
- *   "name": "East Legon Medical Center"
- * }
- * 
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
  */
 const createFacility = controllerErrorHandler(async (req, res) => {
   const { ownerUserId, name } = req.body;
@@ -35,21 +25,14 @@ const createFacility = controllerErrorHandler(async (req, res) => {
 
 /**
  * Assign doctor to facility
- * POST /facilities/assign-doctor
- * 
- * Body:
- * {
- *   "doctorId": "uuid-here",
- *   "facilityId": "uuid-here"
- * }
- * 
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
  */
 const assignDoctorToFacility = controllerErrorHandler(async (req, res) => {
   const { doctorId, facilityId } = req.body;
 
-  const assignment = await facilityService.assignDoctorToFacility(doctorId, facilityId);
+  const assignment = await facilityService.assignDoctorToFacility(
+    doctorId,
+    facilityId
+  );
 
   res.status(201).json({
     success: true,
@@ -61,13 +44,9 @@ const assignDoctorToFacility = controllerErrorHandler(async (req, res) => {
 
 /**
  * Get facility doctors
- * GET /facilities/:facilityId/doctors
- * 
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
  */
 const getFacilityDoctors = controllerErrorHandler(async (req, res) => {
-  const facilityId = req.params.facilityId;
+  const { facilityId } = req.params;
 
   const result = await facilityService.getFacilityDoctors(facilityId);
 
