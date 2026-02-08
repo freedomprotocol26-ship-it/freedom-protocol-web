@@ -4,7 +4,11 @@ const router = express.Router();
 const { authenticateToken } = require('../../middleware/auth');
 const facilityController = require('./facility.controller');
 
-router.post('/', authenticateToken, facilityController.createFacility);
+router.post(
+  '/',
+  authenticateToken,
+  facilityController.createFacility
+);
 
 router.post(
   '/assign-doctor',
