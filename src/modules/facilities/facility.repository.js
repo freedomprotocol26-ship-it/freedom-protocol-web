@@ -1,179 +1,55 @@
 // src/modules/facilities/facility.repository.js
-/**
- * Freedom Protocol - Facility Repository
- * Database queries for facility operations
- */
 
-const db = require('../../db');
+const pool = require('../../db');
 
 /**
- * Create new facility
- * 
- * @param {Object} data - Facility data
- * @param {string} data.name - Facility name
- * @param {string} data.owner_user_id - Owner user UUID
- * @returns {Promise<Object>} Created facility
+ * Insert facility
  */
-const createFacility = async (data) => {
+async function createFacility(ownerUserId, name) {
   const query = `
-    INSERT INTO facilities (name, owner_user_id)
+    INSERT INTO facilities (owner_user_id, name)
     VALUES ($1, $2)
-    RETURNING *
+    RETURNING id, name, owner_user_id AS "ownerUserId", created_at AS "createdAt"
   `;
-  
-  const values = [data.name, data.owner_user_id];
-  
-  const result = await db.query(query, values);
-  return result.rows[0];
-};
 
-/**
- * Get facility by ID
- * 
- * @param {string} facilityId - Facility UUID
- * @returns {Promise<Object|null>} Facility or null
- */
-const getFacilityById = async (facilityId) => {
-  const query = `
-    SELECT *
-    FROM facilities
-    WHERE id = $1
-  `;
-  
-  const result = await db.query(query, [facilityId]);
-  return result.rows[0] || null;
-};
-
-/**
- * Get facilities by owner user ID
- * 
- * @param {string} ownerUserId - Owner user UUID
- * @returns {Promise<Array>} Array of facilities
- */
-const getFacilitiesByOwner = async (ownerUserId) => {
-  const query = `
-    SELECT *
-    FROM facilities
-    WHERE owner_user_id = $1
-    ORDER BY created_at DESC
-  `;
-  
-  const result = await db.query(query, [ownerUserId]);
-  return result.rows;
-};
+  const { rows } = await pool.query(query, [ownerUserId, name]);
+  return rows[0];
+}
 
 /**
  * Assign doctor to facility
- * 
- * @param {string} doctorId - Doctor user UUID
- * @param {string} facilityId - Facility UUID
- * @returns {Promise<Object>} Assignment record
  */
-const assignDoctorToFacility = async (doctorId, facilityId) => {
+async function assignDoctorToFacility(doctorId, facilityId) {
   const query = `
     INSERT INTO doctor_facilities (doctor_id, facility_id)
     VALUES ($1, $2)
-    ON CONFLICT (doctor_id, facility_id) DO NOTHING
-    RETURNING *
+    RETURNING doctor_id AS "doctorId", facility_id AS "facilityId"
   `;
-  
-  const values = [doctorId, facilityId];
-  
-  const result = await db.query(query, values);
-  return result.rows[0];
-};
+
+  const { rows } = await pool.query(query, [doctorId, facilityId]);
+  return rows[0];
+}
 
 /**
- * Check if doctor is assigned to facility
- * 
- * @param {string} doctorId - Doctor user UUID
- * @param {string} facilityId - Facility UUID
- * @returns {Promise<boolean>} True if assigned
+ * Get doctors in facility
  */
-const isDoctorAssignedToFacility = async (doctorId, facilityId) => {
-  const query = `
-    SELECT 1
-    FROM doctor_facilities
-    WHERE doctor_id = $1
-      AND facility_id = $2
-  `;
-  
-  const result = await db.query(query, [doctorId, facilityId]);
-  return result.rows.length > 0;
-};
-
-/**
- * Get doctors assigned to facility
- * 
- * @param {string} facilityId - Facility UUID
- * @returns {Promise<Array>} Array of doctors with assignment info
- */
-const getDoctorsByFacility = async (facilityId) => {
+async function getFacilityDoctors(facilityId) {
   const query = `
     SELECT 
       u.id,
-      u.name,
       u.email,
-      u.phone,
-      u.role,
-      df.assigned_at
+      u.role
     FROM doctor_facilities df
-    INNER JOIN users u ON df.doctor_id = u.id
+    JOIN users u ON u.id = df.doctor_id
     WHERE df.facility_id = $1
-    ORDER BY df.assigned_at DESC
   `;
-  
-  const result = await db.query(query, [facilityId]);
-  return result.rows;
-};
 
-/**
- * Get facilities assigned to doctor
- * 
- * @param {string} doctorId - Doctor user UUID
- * @returns {Promise<Array>} Array of facilities
- */
-const getFacilitiesByDoctor = async (doctorId) => {
-  const query = `
-    SELECT 
-      f.*,
-      df.assigned_at
-    FROM doctor_facilities df
-    INNER JOIN facilities f ON df.facility_id = f.id
-    WHERE df.doctor_id = $1
-    ORDER BY df.assigned_at DESC
-  `;
-  
-  const result = await db.query(query, [doctorId]);
-  return result.rows;
-};
-
-/**
- * Remove doctor from facility
- * 
- * @param {string} doctorId - Doctor user UUID
- * @param {string} facilityId - Facility UUID
- * @returns {Promise<boolean>} True if removed
- */
-const removeDoctorFromFacility = async (doctorId, facilityId) => {
-  const query = `
-    DELETE FROM doctor_facilities
-    WHERE doctor_id = $1
-      AND facility_id = $2
-    RETURNING *
-  `;
-  
-  const result = await db.query(query, [doctorId, facilityId]);
-  return result.rows.length > 0;
-};
+  const { rows } = await pool.query(query, [facilityId]);
+  return rows;
+}
 
 module.exports = {
   createFacility,
-  getFacilityById,
-  getFacilitiesByOwner,
   assignDoctorToFacility,
-  isDoctorAssignedToFacility,
-  getDoctorsByFacility,
-  getFacilitiesByDoctor,
-  removeDoctorFromFacility
+  getFacilityDoctors
 };
