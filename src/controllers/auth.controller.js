@@ -1,7 +1,15 @@
+/**
+ * Freedom Protocol - Auth Controller
+ */
+
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const pool = require("../db");
+const subscriptionService = require("../modules/subscriptions/subscription.service");
 
+/**
+ * Register Doctor
+ */
 exports.registerDoctor = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -23,7 +31,9 @@ exports.registerDoctor = async (req, res) => {
       success: true,
       user: result.rows[0]
     });
+
   } catch (err) {
+
     if (err.code === "23505") {
       return res.status(400).json({ error: "Email already exists" });
     }
@@ -32,6 +42,10 @@ exports.registerDoctor = async (req, res) => {
   }
 };
 
+
+/**
+ * Login (Doctor or Patient)
+ */
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -48,12 +62,30 @@ exports.login = async (req, res) => {
     const user = result.rows[0];
 
     const valid = await bcrypt.compare(password, user.password_hash);
+
     if (!valid) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
+    /**
+     * 🔒 ENFORCE SUBSCRIPTION FOR PATIENTS
+     */
+    if (user.role === "patient") {
+
+      const status = await subscriptionService.isSubscriptionActive(user.id);
+
+      if (!status.active) {
+        return res.status(403).json({
+          error: "Subscription inactive or expired"
+        });
+      }
+    }
+
     const token = jwt.sign(
-      { id: user.id, role: user.role },
+      {
+        id: user.id,
+        role: user.role
+      },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -62,6 +94,7 @@ exports.login = async (req, res) => {
       success: true,
       token
     });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
