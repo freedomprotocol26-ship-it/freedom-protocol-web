@@ -1,15 +1,10 @@
 /**
  * Freedom Protocol - Payment Controller
- * HTTP handlers for payment endpoints
  */
 
 const paymentService = require('./payment.service');
 const controllerErrorHandler = require('../../controllers/controllerErrorHandler');
 
-/**
- * Initiate payment
- * POST /payments/initiate
- */
 const initiatePayment = controllerErrorHandler(async (req, res) => {
   const { patientId, plan } = req.body;
 
@@ -21,10 +16,6 @@ const initiatePayment = controllerErrorHandler(async (req, res) => {
   });
 });
 
-/**
- * Confirm payment
- * POST /payments/confirm
- */
 const confirmPayment = controllerErrorHandler(async (req, res) => {
   const { patientId, plan, reference } = req.body;
 
