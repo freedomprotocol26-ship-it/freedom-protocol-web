@@ -5,15 +5,19 @@ const authRoutes = require("./routes/auth");
 const patientRoutes = require("./routes/patient");
 const subscriptionRoutes = require("./modules/subscriptions/subscription.routes");
 const paymentRoutes = require("./modules/payments/payment.routes");
+const facilityRoutes = require("./modules/facilities/facility.routes");
 
 const app = express();
 app.use(express.json());
 
+// Routes
 app.use("/auth", authRoutes);
 app.use("/patients", patientRoutes);
 app.use("/subscriptions", subscriptionRoutes);
 app.use("/payments", paymentRoutes);
+app.use("/facilities", facilityRoutes);
 
+// Health check
 app.get("/health", async (req, res) => {
   try {
     const result = await pool.query("SELECT NOW()");
