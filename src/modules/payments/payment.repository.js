@@ -1,15 +1,18 @@
 /**
- * Freedom Protocol - Payment Repository
- * Database queries for payment operations
+ * Payment Repository
+ * Data access layer for payment operations
  */
 
 const db = require('../../db');
 
-const createPayment = async (data) => {
+/**
+ * Create a new payment record
+ */
+async function createPayment(data) {
   const query = `
     INSERT INTO payments (
       patient_id,
-      subscription_plan,
+      plan,
       amount,
       currency,
       provider,
@@ -22,7 +25,7 @@ const createPayment = async (data) => {
 
   const values = [
     data.patient_id,
-    data.subscription_plan,
+    data.plan,
     data.amount,
     data.currency,
     data.provider,
@@ -32,33 +35,37 @@ const createPayment = async (data) => {
 
   const result = await db.query(query, values);
   return result.rows[0];
-};
+}
 
-const updatePaymentStatus = async (paymentId, status) => {
+/**
+ * Update payment status by provider reference
+ */
+async function updatePaymentStatus(providerReference, status) {
   const query = `
     UPDATE payments
-    SET status = $1,
-        updated_at = NOW()
-    WHERE id = $2
+    SET status = $1
+    WHERE provider_reference = $2
     RETURNING *
   `;
 
-  const result = await db.query(query, [status, paymentId]);
+  const result = await db.query(query, [status, providerReference]);
   return result.rows[0] || null;
-};
+}
 
-const getPaymentByProviderReference = async (providerReference) => {
+/**
+ * Get payment by provider reference
+ */
+async function getPaymentByProviderReference(providerReference) {
   const query = `
     SELECT *
     FROM payments
     WHERE provider_reference = $1
-    ORDER BY created_at DESC
     LIMIT 1
   `;
 
   const result = await db.query(query, [providerReference]);
   return result.rows[0] || null;
-};
+}
 
 module.exports = {
   createPayment,

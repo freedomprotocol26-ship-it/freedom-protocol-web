@@ -1,96 +1,74 @@
 /**
- * Freedom Protocol - Payment Service
- * Business logic for payment processing
+ * Payment Service
+ * Business logic layer for payment operations
  */
 
-const BaseError = require('../../errors/baseError');
 const paymentRepository = require('./payment.repository');
 const subscriptionService = require('../subscriptions/subscription.service');
 
-/**
- * Plan pricing in pesewas (GHS * 100)
- */
-const PLAN_PRICING = {
-  '3m': 28500,
-  '6m': 51300,
-  '12m': 91200
-};
+async function createPendingPayment({ patientId, plan, amount, providerReference }) {
+  if (!patientId) throw new Error('Patient ID is required');
+  if (!plan) throw new Error('Plan is required');
+  if (!amount || amount <= 0) throw new Error('Valid amount is required');
+  if (!providerReference) throw new Error('Provider reference is required');
 
-/**
- * Initiate payment
- */
-async function initiatePayment(patientId, plan) {
-
-  if (!patientId) {
-    throw new BaseError("Patient ID required", 400);
+  const validPlans = ['3m', '6m', '12m'];
+  if (!validPlans.includes(plan)) {
+    throw new Error('Invalid plan');
   }
 
-  if (!PLAN_PRICING[plan]) {
-    throw new BaseError("Invalid plan", 400);
-  }
-
-  const amount = PLAN_PRICING[plan];
-
-  const reference =
-    `FP-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-  const payment = await paymentRepository.createPayment({
+  const paymentData = {
     patient_id: patientId,
-    subscription_plan: plan,
-    amount,
-    currency: 'GHS',
-    provider: 'simulated',
-    provider_reference: reference,
-    status: 'pending'
-  });
-
-  return {
-    paymentId: payment.id,
-    reference,
-    amount,
-    currency: 'GHS',
     plan,
+    amount,
+    currency: 'USD',
+    provider: 'stripe',
+    provider_reference: providerReference,
     status: 'pending'
   };
+
+  return paymentRepository.createPayment(paymentData);
 }
 
-/**
- * Confirm payment and extend subscription
- */
-async function confirmPayment(patientId, plan, reference) {
-
-  if (!patientId || !plan || !reference) {
-    throw new BaseError("Missing fields", 400);
-  }
+async function handleSuccessfulPayment(providerReference) {
+  if (!providerReference) throw new Error('Provider reference is required');
 
   const payment =
-    await paymentRepository.getPaymentByProviderReference(reference);
+    await paymentRepository.getPaymentByProviderReference(providerReference);
 
-  if (!payment) {
-    throw new BaseError("Payment not found", 404);
+  if (!payment) throw new Error('Payment not found');
+
+  if (payment.status === 'succeeded') {
+    return payment;
   }
 
-  if (payment.status === 'success') {
-    throw new BaseError("Payment already confirmed", 409);
-  }
+  const updatedPayment =
+    await paymentRepository.updatePaymentStatus(providerReference, 'succeeded');
 
-  await paymentRepository.updatePaymentStatus(
-    payment.id,
-    'success'
+  await subscriptionService.extendSubscription(
+    payment.patient_id,
+    payment.plan
   );
 
-  const subscription =
-    await subscriptionService.extendSubscription(patientId, plan);
+  return updatedPayment;
+}
 
-  return {
-    paymentId: payment.id,
-    status: 'success',
-    subscription
-  };
+async function handleFailedPayment(providerReference) {
+  if (!providerReference) throw new Error('Provider reference is required');
+
+  const payment =
+    await paymentRepository.getPaymentByProviderReference(providerReference);
+
+  if (!payment) throw new Error('Payment not found');
+
+  return paymentRepository.updatePaymentStatus(
+    providerReference,
+    'failed'
+  );
 }
 
 module.exports = {
-  initiatePayment,
-  confirmPayment,
-  PLAN_PRICING
+  createPendingPayment,
+  handleSuccessfulPayment,
+  handleFailedPayment
 };
