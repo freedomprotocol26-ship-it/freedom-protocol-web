@@ -1,4 +1,4 @@
-const db = require('../config/database');
+const db = require('../../../db');
 
 const getActionById = async (actionId) => {
   const query = `

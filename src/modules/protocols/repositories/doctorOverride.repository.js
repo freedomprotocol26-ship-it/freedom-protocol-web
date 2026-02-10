@@ -1,4 +1,5 @@
-const db = require('../config/database');
+const db = require('../../../db');
+
 
 const getOverridesForPatient = async (patientId) => {
   const query = `

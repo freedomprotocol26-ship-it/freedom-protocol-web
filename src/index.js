@@ -6,6 +6,7 @@ const patientRoutes = require("./routes/patient");
 const subscriptionRoutes = require("./modules/subscriptions/subscription.routes");
 const paymentRoutes = require("./modules/payments/payment.routes");
 const facilityRoutes = require("./modules/facilities/facility.routes");
+const protocolRoutes = require("./modules/protocols/routes/protocol.routes");
 
 const app = express();
 app.use(express.json());
@@ -16,6 +17,7 @@ app.use("/patients", patientRoutes);
 app.use("/subscriptions", subscriptionRoutes);
 app.use("/payments", paymentRoutes);
 app.use("/facilities", facilityRoutes);
+app.use("/", protocolRoutes);
 
 // Health check
 app.get("/health", async (req, res) => {
@@ -28,4 +30,6 @@ app.get("/health", async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("API running on", PORT));
+app.listen(PORT, () => {
+  console.log("API running on", PORT);
+});
