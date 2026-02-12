@@ -19,7 +19,7 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json"
         },
-        credentials: "include",   // ✅ IMPORTANT
+        credentials: "include",
         body: JSON.stringify({ email, password })
       });
 
@@ -33,14 +33,13 @@ export default function LoginPage() {
       login(data.token);
       navigate("/dashboard");
     } catch (err) {
-      console.error("Login error:", err);  // ✅ So we can see real error
       setMessage("Network error");
     }
   }
 
   return (
     <div style={{ padding: 40 }}>
-      <h1>Doctor Login</h1>
+      <h1>Freedom Protocol Login</h1>
 
       <form onSubmit={handleSubmit}>
         <input
@@ -48,6 +47,7 @@ export default function LoginPage() {
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          required
         />
         <br /><br />
 
@@ -56,6 +56,7 @@ export default function LoginPage() {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          required
         />
         <br /><br />
 

@@ -1,9 +1,13 @@
-export default function AdminDashboard({ user, onLogout }) {
+import { useAuth } from "../auth/AuthContext.jsx";
+
+export default function AdminDashboard() {
+  const { role, logout } = useAuth();
+
   return (
     <div style={{ padding: 40 }}>
       <h2>Admin Dashboard</h2>
-      <p>Welcome, {user?.email || "admin"}.</p>
-      <button onClick={onLogout}>Logout</button>
+      <p>Role: {role}</p>
+      <button onClick={logout}>Logout</button>
     </div>
   );
 }
