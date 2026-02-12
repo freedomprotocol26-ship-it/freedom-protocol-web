@@ -1,67 +1,105 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
+const { authenticateToken } = require('../middleware/auth');
+const db = require('../db');
 
-const { pool } = require("../db");
-const { generatePayoutBatch } = require("../services/payoutService");
+// ======================================
+// GLOBAL ADMIN AUTHENTICATION
+// ======================================
 
-/**
- * =========================
- * ADMIN — APPROVE DOCTOR
- * =========================
- */
-router.post("/approve-doctor/:userId", async (req, res) => {
-  try {
-    const { userId } = req.params;
+router.use(authenticateToken);
 
-    await pool.query(
-      `
-      UPDATE doctors
-      SET status = 'active'
-      WHERE user_id = $1
-      `,
-      [userId]
-    );
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
+router.use((req, res, next) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
       success: false,
-      message: "Failed to approve doctor",
+      error: 'Admin access required'
+    });
+  }
+  next();
+});
+
+// ======================================
+// GET PENDING DOCTORS
+// ======================================
+
+router.get('/doctors/pending', async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        id,
+        email,
+        approval_status,
+        account_status,
+        created_at
+      FROM users
+      WHERE role = 'doctor'
+      AND approval_status = 'pending'
+      ORDER BY created_at DESC
+    `;
+
+    const { rows } = await db.query(query);
+
+    return res.status(200).json({
+      success: true,
+      data: rows
+    });
+
+  } catch (error) {
+    console.error('Error fetching pending doctors:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fetch pending doctors'
     });
   }
 });
 
-/**
- * =========================
- * ADMIN — RUN PAYOUTS
- * =========================
- */
-router.post("/payouts/run", async (req, res) => {
-  try {
-    const { period_start, period_end } = req.body;
+// ======================================
+// APPROVE / REJECT DOCTOR
+// ======================================
 
-    if (!period_start || !period_end) {
+router.patch('/doctors/:id/approval', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { approval_status } = req.body;
+
+    if (!['approved', 'rejected'].includes(approval_status)) {
       return res.status(400).json({
         success: false,
-        message: "period_start and period_end are required",
+        error: 'Invalid approval status'
       });
     }
 
-    const result = await generatePayoutBatch({
-      periodStart: period_start,
-      periodEnd: period_end,
+    const updateQuery = `
+      UPDATE users 
+      SET approval_status = $1
+      WHERE id = $2
+      AND role = 'doctor'
+      RETURNING id, email, approval_status
+    `;
+
+    const { rows } = await db.query(updateQuery, [approval_status, id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Doctor not found'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Doctor ${approval_status} successfully`,
+      data: rows[0]
     });
 
-    res.json(result);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
+  } catch (error) {
+    console.error('Error updating doctor approval:', error);
+    return res.status(500).json({
       success: false,
-      message: "Failed to generate payouts",
+      error: 'Failed to update doctor approval'
     });
   }
 });
 
 module.exports = router;
-

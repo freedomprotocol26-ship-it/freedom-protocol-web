@@ -7,8 +7,13 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 
-const { pool } = require('./db');
+const pool = require('./db');
+
+// ROUTES
+const authRoutes = require('./routes/auth');
 const patientRoutes = require('./modules/patients/patient.routes');
+const doctorRoutes = require('./routes/doctor');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,7 +30,17 @@ app.use(express.static(path.join(__dirname, '../public')));
 // ROUTES
 // ============================================
 
-app.use(patientRoutes);
+// Auth Routes
+app.use('/auth', authRoutes);
+
+// Patient Routes
+app.use('/patients', patientRoutes);
+
+// Doctor Routes
+app.use('/doctor', doctorRoutes);
+
+// Admin Routes
+app.use('/admin', adminRoutes);
 
 // ============================================
 // HEALTH CHECK

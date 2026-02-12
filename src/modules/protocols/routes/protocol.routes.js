@@ -2,13 +2,30 @@ const express = require('express');
 const router = express.Router();
 
 const protocolController = require('../controllers/protocol.controller');
+const patientProtocolController = require('../controllers/patientProtocol.controller');
+const doctorOverrideController = require('../controllers/doctorOverride.controller');
+
 const { authenticateToken } = require('../../../middleware/auth');
 
-// Public / Read-only
-router.get('/protocols/templates', protocolController.listProtocolTemplates);
-router.get('/protocols/templates/:condition', protocolController.getProtocolTemplateByCondition);
+/*
+|--------------------------------------------------------------------------
+| PROTOCOL TEMPLATES
+|--------------------------------------------------------------------------
+*/
 
-// Admin / Doctor
+router.get('/protocols/templates', protocolController.listProtocolTemplates);
+
+router.get(
+  '/protocols/templates/:condition',
+  protocolController.getProtocolTemplateByCondition
+);
+
+/*
+|--------------------------------------------------------------------------
+| TEMPLATE VERSIONS
+|--------------------------------------------------------------------------
+*/
+
 router.get(
   '/protocols/templates/:templateId/versions',
   authenticateToken,
@@ -21,11 +38,40 @@ router.get(
   protocolController.previewProtocolByVersion
 );
 
-// Patient / Doctor
+/*
+|--------------------------------------------------------------------------
+| PATIENT PROTOCOL
+|--------------------------------------------------------------------------
+*/
+
 router.get(
   '/patients/:patientId/protocol',
   authenticateToken,
   protocolController.getPatientProtocol
+);
+
+router.post(
+  '/patients/:patientId/protocol',
+  authenticateToken,
+  patientProtocolController.assignProtocolToPatient
+);
+
+/*
+|--------------------------------------------------------------------------
+| DOCTOR OVERRIDES
+|--------------------------------------------------------------------------
+*/
+
+router.post(
+  '/protocols/overrides',
+  authenticateToken,
+  doctorOverrideController.createOverride
+);
+
+router.get(
+  '/patients/:patientId/protocol/overrides',
+  authenticateToken,
+  doctorOverrideController.getOverridesForPatient
 );
 
 module.exports = router;
