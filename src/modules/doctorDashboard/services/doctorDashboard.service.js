@@ -1,20 +1,32 @@
-const doctorDashboardRepository = require('../repositories/doctorDashboard.repository');
+const pool = require('../../../db');
 
-const getDashboard = async (doctorId) => {
-  const stats = await doctorDashboardRepository.getDoctorStats(doctorId);
-  const patients = await doctorDashboardRepository.getDoctorPatients(doctorId);
+/**
+ * Get Doctor Dashboard Summary
+ */
+exports.getDashboardSummary = async (doctorId) => {
+  const result = await pool.query(
+    `SELECT COUNT(*) 
+     FROM patients 
+     WHERE doctor_id = $1`,
+    [doctorId]
+  );
 
   return {
-    stats,
-    patients
+    totalPatients: parseInt(result.rows[0].count, 10)
   };
 };
 
-const getPatients = async (doctorId) => {
-  return doctorDashboardRepository.getDoctorPatients(doctorId);
-};
+/**
+ * Get Doctor Patients
+ */
+exports.getDoctorPatients = async (doctorId) => {
+  const result = await pool.query(
+    `SELECT id, first_name, last_name, email
+     FROM patients
+     WHERE doctor_id = $1
+     ORDER BY created_at DESC`,
+    [doctorId]
+  );
 
-module.exports = {
-  getDashboard,
-  getPatients
+  return result.rows;
 };
