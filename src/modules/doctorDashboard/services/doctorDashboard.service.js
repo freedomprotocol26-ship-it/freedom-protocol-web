@@ -30,3 +30,19 @@ exports.getDoctorPatients = async (doctorId) => {
 
   return result.rows;
 };
+
+/**
+ * Create New Patient (Doctor-owned)
+ */
+exports.createPatient = async (doctorId, patientData) => {
+  const { first_name, last_name, email } = patientData;
+
+  const result = await pool.query(
+    `INSERT INTO patients (first_name, last_name, email, doctor_id)
+     VALUES ($1, $2, $3, $4)
+     RETURNING id, first_name, last_name, email`,
+    [first_name, last_name, email, doctorId]
+  );
+
+  return result.rows[0];
+};
