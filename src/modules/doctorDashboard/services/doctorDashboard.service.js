@@ -1,48 +1,35 @@
-const pool = require('../../../db');
+const doctorDashboardRepository = require('../repositories/doctorDashboard.repository');
 
 /**
- * Get Doctor Dashboard Summary
+ * Get doctor dashboard statistics
  */
-exports.getDashboardSummary = async (doctorId) => {
-  const result = await pool.query(
-    `SELECT COUNT(*) 
-     FROM patients 
-     WHERE doctor_id = $1`,
-    [doctorId]
-  );
-
-  return {
-    totalPatients: parseInt(result.rows[0].count, 10)
-  };
+exports.getDoctorStats = async (doctorId) => {
+  return await doctorDashboardRepository.getDoctorStats(doctorId);
 };
 
 /**
- * Get Doctor Patients
+ * Get all patients under doctor
  */
 exports.getDoctorPatients = async (doctorId) => {
-  const result = await pool.query(
-    `SELECT id, first_name, last_name, email
-     FROM patients
-     WHERE doctor_id = $1
-     ORDER BY created_at DESC`,
-    [doctorId]
-  );
-
-  return result.rows;
+  return await doctorDashboardRepository.getDoctorPatients(doctorId);
 };
 
 /**
- * Create New Patient (Doctor-owned)
+ * Get single patient
  */
-exports.createPatient = async (doctorId, patientData) => {
-  const { first_name, last_name, email } = patientData;
-
-  const result = await pool.query(
-    `INSERT INTO patients (first_name, last_name, email, doctor_id)
-     VALUES ($1, $2, $3, $4)
-     RETURNING id, first_name, last_name, email`,
-    [first_name, last_name, email, doctorId]
+exports.getDoctorPatientById = async (doctorId, patientId) => {
+  return await doctorDashboardRepository.getDoctorPatientById(
+    doctorId,
+    patientId
   );
+};
 
-  return result.rows[0];
+/**
+ * Search patients
+ */
+exports.searchDoctorPatients = async (doctorId, searchTerm) => {
+  return await doctorDashboardRepository.searchDoctorPatients(
+    doctorId,
+    searchTerm
+  );
 };

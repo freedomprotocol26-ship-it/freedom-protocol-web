@@ -9,7 +9,7 @@ const doctorDashboardController = require('../controllers/doctorDashboard.contro
  * Dashboard statistics
  */
 router.get(
-  '/dashboard/stats',
+  '/doctor/dashboard/stats',
   authenticateToken,
   requireDoctor,
   doctorDashboardController.getDoctorStats
@@ -19,7 +19,7 @@ router.get(
  * All patients
  */
 router.get(
-  '/patients',
+  '/doctor/patients',
   authenticateToken,
   requireDoctor,
   doctorDashboardController.getDoctorPatients
@@ -29,7 +29,7 @@ router.get(
  * Single patient
  */
 router.get(
-  '/patients/:patientId',
+  '/doctor/patients/:patientId',
   authenticateToken,
   requireDoctor,
   doctorDashboardController.getDoctorPatientById
@@ -39,11 +39,10 @@ router.get(
  * Search patients
  */
 router.get(
-  '/patients/search',
+  '/doctor/patients/search',
   authenticateToken,
   requireDoctor,
   doctorDashboardController.searchDoctorPatients
 );
 
 module.exports = router;
-

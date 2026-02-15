@@ -1,5 +1,5 @@
 /**
- * Freedom Protocol - Server Entry Point
+ * Freedom Protocol - Server Entry Point (Modular Architecture Only)
  */
 
 require('dotenv').config();
@@ -8,22 +8,28 @@ const express = require('express');
 const cors = require('cors');
 const pool = require('./db');
 
-const authRoutes = require('./routes/auth');
-const adminRoutes = require('./routes/admin');
-const patientRoutes = require('./routes/patient');
+/**
+ * ===============================
+ * MODULE ROUTES (ONLY)
+ * ===============================
+ */
+
+const adminRoutes = require('./modules/admin/routes/admin.routes');
+const authRoutes = require('./modules/auth/routes/auth.routes');
 const subscriptionRoutes = require('./modules/subscriptions/subscription.routes');
 const paymentRoutes = require('./modules/payments/payment.routes');
 const facilityRoutes = require('./modules/facilities/facility.routes');
 const protocolRoutes = require('./modules/protocols/routes/protocol.routes');
 const doctorDashboardRoutes = require('./modules/doctorDashboard/routes/doctorDashboard.routes');
+const patientRoutes = require('./modules/patients/routes/patient.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 /**
- * ==========================================
+ * ===============================
  * GLOBAL MIDDLEWARE
- * ==========================================
+ * ===============================
  */
 
 app.use(cors({
@@ -34,24 +40,24 @@ app.use(cors({
 app.use(express.json());
 
 /**
- * ==========================================
- * CORE ROUTES
- * ==========================================
+ * ===============================
+ * MODULE ROUTE REGISTRATION
+ * ===============================
  */
 
 app.use('/auth', authRoutes);
-app.use('/admin', adminRoutes);
-app.use('/patients', patientRoutes);
 app.use('/subscriptions', subscriptionRoutes);
 app.use('/payments', paymentRoutes);
 app.use('/facilities', facilityRoutes);
-app.use('/', protocolRoutes);
-app.use('/', doctorDashboardRoutes);
+app.use('/protocols', protocolRoutes);
+app.use('/doctor', doctorDashboardRoutes);
+app.use('/admin', adminRoutes);
+app.use('/patients', patientRoutes);
 
 /**
- * ==========================================
+ * ===============================
  * HEALTH CHECK
- * ==========================================
+ * ===============================
  */
 
 app.get('/health', async (req, res) => {
@@ -71,9 +77,9 @@ app.get('/health', async (req, res) => {
 });
 
 /**
- * ==========================================
+ * ===============================
  * 404 HANDLER
- * ==========================================
+ * ===============================
  */
 
 app.use((req, res) => {
@@ -84,9 +90,9 @@ app.use((req, res) => {
 });
 
 /**
- * ==========================================
+ * ===============================
  * GLOBAL ERROR HANDLER
- * ==========================================
+ * ===============================
  */
 
 app.use((err, req, res, next) => {
@@ -99,9 +105,9 @@ app.use((err, req, res, next) => {
 });
 
 /**
- * ==========================================
+ * ===============================
  * START SERVER
- * ==========================================
+ * ===============================
  */
 
 app.listen(PORT, () => {

@@ -17,3 +17,5 @@ router.post("/apply-doctor", authController.applyDoctor);
 router.post("/login", authController.login);
 
 module.exports = router;
+
+

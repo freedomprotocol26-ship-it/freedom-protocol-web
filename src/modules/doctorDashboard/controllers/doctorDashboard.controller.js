@@ -1,44 +1,114 @@
 const doctorDashboardService = require('../services/doctorDashboard.service');
+const doctorAccessService = require('../services/doctorAccess.service');
 
-const getDashboard = async (req, res) => {
+/**
+ * GET Dashboard Stats
+ */
+exports.getDoctorStats = async (req, res, next) => {
   try {
     const doctorId = req.user.id;
 
-    const data = await doctorDashboardService.getDashboard(doctorId);
+    const access = await doctorAccessService.validateActiveDoctor(doctorId);
+    if (!access.allowed) {
+      return res.status(403).json({
+        success: false,
+        message: access.message,
+      });
+    }
 
-    return res.status(200).json({
+    const data = await doctorDashboardService.getDoctorStats(doctorId);
+
+    res.json({
       success: true,
-      data
+      data,
     });
-
-  } catch (error) {
-    return res.status(400).json({
-      success: false,
-      error: error.message
-    });
+  } catch (err) {
+    next(err);
   }
 };
 
-const getPatients = async (req, res) => {
+/**
+ * GET All Patients
+ */
+exports.getDoctorPatients = async (req, res, next) => {
   try {
     const doctorId = req.user.id;
 
-    const patients = await doctorDashboardService.getPatients(doctorId);
+    const access = await doctorAccessService.validateActiveDoctor(doctorId);
+    if (!access.allowed) {
+      return res.status(403).json({
+        success: false,
+        message: access.message,
+      });
+    }
 
-    return res.status(200).json({
+    const data = await doctorDashboardService.getDoctorPatients(doctorId);
+
+    res.json({
       success: true,
-      data: patients
+      data,
     });
-
-  } catch (error) {
-    return res.status(400).json({
-      success: false,
-      error: error.message
-    });
+  } catch (err) {
+    next(err);
   }
 };
 
-module.exports = {
-  getDashboard,
-  getPatients
+/**
+ * GET Single Patient
+ */
+exports.getDoctorPatientById = async (req, res, next) => {
+  try {
+    const doctorId = req.user.id;
+    const { patientId } = req.params;
+
+    const access = await doctorAccessService.validateActiveDoctor(doctorId);
+    if (!access.allowed) {
+      return res.status(403).json({
+        success: false,
+        message: access.message,
+      });
+    }
+
+    const data = await doctorDashboardService.getDoctorPatientById(
+      doctorId,
+      patientId
+    );
+
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * SEARCH Patients
+ */
+exports.searchDoctorPatients = async (req, res, next) => {
+  try {
+    const doctorId = req.user.id;
+    const { q } = req.query;
+
+    const access = await doctorAccessService.validateActiveDoctor(doctorId);
+    if (!access.allowed) {
+      return res.status(403).json({
+        success: false,
+        message: access.message,
+      });
+    }
+
+    const data = await doctorDashboardService.searchDoctorPatients(
+      doctorId,
+      q
+    );
+
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
 };

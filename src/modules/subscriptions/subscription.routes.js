@@ -8,15 +8,15 @@ const router = express.Router();
 const subscriptionController =
   require('./subscription.controller');
 
-const authenticate =
-  require('../../middleware/auth.middleware');
+const { authenticateToken } =
+  require('../../middleware/auth');
 
 /**
  * POST /subscriptions/trial
  */
 router.post(
   '/trial',
-  authenticate,
+  authenticateToken,
   subscriptionController.createTrial
 );
 
@@ -25,7 +25,7 @@ router.post(
  */
 router.post(
   '/extend',
-  authenticate,
+  authenticateToken,
   subscriptionController.extend
 );
 
@@ -34,7 +34,7 @@ router.post(
  */
 router.get(
   '/status/:patientId',
-  authenticate,
+  authenticateToken,
   subscriptionController.status
 );
 
