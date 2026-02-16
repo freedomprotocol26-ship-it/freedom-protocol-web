@@ -1,85 +1,86 @@
-const patientProtocolService = require('../services/patientProtocol.service');
+const runtimeService = require('../services/patientProtocolRuntime.service');
 
 /**
- * ======================================
- * POST /patients/:patientId/assign-protocol
- * ======================================
+ * Start Protocol
  */
-exports.assignProtocol = async (req, res, next) => {
+exports.startProtocol = async (req, res, next) => {
   try {
-    const doctorId = req.user.id;
-    const { patientId } = req.params;
-    const { protocolVersionId } = req.body;
+    const protocolId = req.params.id;
+    const userId = req.user.id;
 
-    if (!protocolVersionId) {
-      return res.status(400).json({
-        success: false,
-        message: 'protocolVersionId is required'
-      });
-    }
+    const result = await runtimeService.startProtocol(protocolId, userId);
 
-    const assignment = await patientProtocolService.assignProtocolToPatient({
-      doctorId,
-      patientId,
-      protocolVersionId
+    res.json({
+      success: true,
+      data: result
     });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
+ * Get Current Phase
+ */
+exports.getCurrentPhase = async (req, res, next) => {
+  try {
+    const protocolId = req.params.id;
+    const userId = req.user.id;
+
+    const result = await runtimeService.getCurrentPhase(protocolId, userId);
+
+    res.json({
+      success: true,
+      data: result
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
+ * Advance Phase
+ */
+exports.advancePhase = async (req, res, next) => {
+  try {
+    const protocolId = req.params.id;
+    const userId = req.user.id;
+
+    const result = await runtimeService.advancePhase(protocolId, userId);
+
+    res.json({
+      success: true,
+      data: result
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
+ * Submit Daily Report
+ */
+exports.submitDailyReport = async (req, res, next) => {
+  try {
+    const protocolId = req.params.id;
+    const userId = req.user.id;
+    const reportText = req.body.reportText;
+
+    const result = await runtimeService.submitDailyReport(
+      protocolId,
+      userId,
+      reportText
+    );
 
     res.status(201).json({
       success: true,
-      message: 'Protocol assigned successfully',
-      data: assignment
-    });
-
-  } catch (err) {
-    next(err);
-  }
-};
-
-
-/**
- * ======================================
- * GET /patients/:patientId/protocols
- * (Doctor view)
- * ======================================
- */
-exports.getPatientProtocols = async (req, res, next) => {
-  try {
-    const doctorId = req.user.id;
-    const { patientId } = req.params;
-
-    const protocols = await patientProtocolService.getProtocolsForPatient({
-      doctorId,
-      patientId
-    });
-
-    res.json({
-      success: true,
-      count: protocols.length,
-      data: protocols
-    });
-
-  } catch (err) {
-    next(err);
-  }
-};
-
-
-/**
- * ======================================
- * GET /patients/me/protocols
- * (Patient self view)
- * ======================================
- */
-exports.getMyProtocols = async (req, res, next) => {
-  try {
-    const userId = req.user.id;
-
-    const protocols = await patientProtocolService.getMyProtocols(userId);
-
-    res.json({
-      success: true,
-      count: protocols.length,
-      data: protocols
+      data: result
     });
 
   } catch (err) {
