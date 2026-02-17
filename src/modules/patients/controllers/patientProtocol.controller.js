@@ -70,12 +70,15 @@ exports.submitDailyReport = async (req, res, next) => {
   try {
     const protocolId = req.params.id;
     const userId = req.user.id;
-    const reportText = req.body.reportText;
+
+    // ✅ Now includes fastingGlucose
+    const { reportText, fastingGlucose } = req.body;
 
     const result = await runtimeService.submitDailyReport(
       protocolId,
       userId,
-      reportText
+      reportText,
+      fastingGlucose
     );
 
     res.status(201).json({
