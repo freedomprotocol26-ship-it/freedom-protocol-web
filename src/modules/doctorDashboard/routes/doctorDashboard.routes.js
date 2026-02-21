@@ -3,7 +3,10 @@ const router = express.Router();
 
 const { authenticateToken } = require('../../../middleware/auth');
 const requireDoctor = require('../../../middleware/requireDoctor');
+
 const doctorDashboardController = require('../controllers/doctorDashboard.controller');
+const doctorAlertsController = require('../controllers/doctorAlerts.controller');
+const doctorPriorityController = require('../controllers/doctorPriority.controller');
 
 /**
  * Dashboard statistics
@@ -13,6 +16,16 @@ router.get(
   authenticateToken,
   requireDoctor,
   doctorDashboardController.getDoctorStats
+);
+
+/**
+ * Priority intelligence
+ */
+router.get(
+  '/dashboard/priority',
+  authenticateToken,
+  requireDoctor,
+  doctorPriorityController.getPriorityList
 );
 
 /**
@@ -45,5 +58,14 @@ router.get(
   doctorDashboardController.searchDoctorPatients
 );
 
-module.exports = router;
+/**
+ * Alerts
+ */
+router.get(
+  '/alerts',
+  authenticateToken,
+  requireDoctor,
+  doctorAlertsController.getDoctorAlerts
+);
 
+module.exports = router;

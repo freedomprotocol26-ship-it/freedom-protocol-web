@@ -1,5 +1,5 @@
 /**
- * Freedom Protocol - Server Entry Point (Modular Architecture Only)
+ * Freedom Protocol - Server Entry Point
  */
 
 require('dotenv').config();
@@ -10,7 +10,7 @@ const pool = require('./db');
 
 /**
  * ===============================
- * MODULE ROUTES (ONLY)
+ * MODULE ROUTES
  * ===============================
  */
 
@@ -22,9 +22,12 @@ const facilityRoutes = require('./modules/facilities/facility.routes');
 const protocolRoutes = require('./modules/protocols/routes/protocol.routes');
 const doctorDashboardRoutes = require('./modules/doctorDashboard/routes/doctorDashboard.routes');
 const patientRoutes = require('./modules/patients/routes/patient.routes');
+const consultationRoutes = require('./modules/consultations/routes/consultation.routes');
+const secondOpinionRoutes = require('./modules/doctor/routes/secondOpinion.routes');
+const supervisoryRoutes = require('./modules/doctor/routes/supervisory.routes'); // ✅ NEW
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 
 /**
  * ===============================
@@ -41,7 +44,7 @@ app.use(express.json());
 
 /**
  * ===============================
- * MODULE ROUTE REGISTRATION
+ * ROUTE REGISTRATION
  * ===============================
  */
 
@@ -50,9 +53,41 @@ app.use('/subscriptions', subscriptionRoutes);
 app.use('/payments', paymentRoutes);
 app.use('/facilities', facilityRoutes);
 app.use('/protocols', protocolRoutes);
+
 app.use('/doctor', doctorDashboardRoutes);
+app.use('/doctor', secondOpinionRoutes);
+app.use('/doctor', supervisoryRoutes); // ✅ NEW
+
 app.use('/admin', adminRoutes);
 app.use('/patients', patientRoutes);
+app.use('/consultations', consultationRoutes);
+
+/**
+ * ===============================
+ * DEBUG ROUTE (Temporary)
+ * ===============================
+ */
+
+app.get('/debug/db', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT current_database() AS database,
+             current_schema() AS schema,
+             inet_server_addr() AS server_ip;
+    `);
+
+    res.json({
+      success: true,
+      data: result.rows[0]
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
 
 /**
  * ===============================
@@ -63,11 +98,13 @@ app.use('/patients', patientRoutes);
 app.get('/health', async (req, res) => {
   try {
     const result = await pool.query('SELECT NOW()');
+
     return res.json({
       success: true,
       status: 'ok',
       time: result.rows[0]
     });
+
   } catch (err) {
     return res.status(500).json({
       success: false,

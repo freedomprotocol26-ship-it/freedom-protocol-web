@@ -1,7 +1,9 @@
 const pool = require('../../../db');
 
 /**
+ * ===============================
  * START PROTOCOL
+ * ===============================
  */
 exports.startProtocol = async (patientProtocolId) => {
 
@@ -32,7 +34,7 @@ exports.startProtocol = async (patientProtocolId) => {
   );
 
   if (firstPhaseRes.rows.length === 0) {
-    throw new Error('No phases defined for this protocol');
+    throw new Error('No phases defined');
   }
 
   const firstPhaseId = firstPhaseRes.rows[0].id;
@@ -42,6 +44,7 @@ exports.startProtocol = async (patientProtocolId) => {
     UPDATE patient_protocols
     SET status = 'active',
         current_phase_id = $1,
+        current_phase_started_at = NOW(),
         started_at = NOW()
     WHERE id = $2
     RETURNING *
@@ -54,31 +57,9 @@ exports.startProtocol = async (patientProtocolId) => {
 
 
 /**
- * GET CURRENT PHASE
- */
-exports.getCurrentPhase = async (protocolId, userId) => {
-
-  const result = await pool.query(
-    `
-    SELECT pp.current_phase_id, ph.name, ph.phase_order
-    FROM patient_protocols pp
-    JOIN protocol_phases ph ON ph.id = pp.current_phase_id
-    WHERE pp.id = $1
-      AND pp.patient_id = $2
-    `,
-    [protocolId, userId]
-  );
-
-  if (result.rows.length === 0) {
-    throw new Error('Protocol not found');
-  }
-
-  return result.rows[0];
-};
-
-
-/**
+ * ===============================
  * SUBMIT DAILY REPORT
+ * ===============================
  */
 exports.submitDailyReport = async (
   protocolId,
@@ -87,7 +68,7 @@ exports.submitDailyReport = async (
   fastingGlucose
 ) => {
 
-  if (!reportText || typeof reportText !== 'string') {
+  if (!reportText) {
     throw new Error('Report text is required');
   }
 
@@ -111,11 +92,10 @@ exports.submitDailyReport = async (
   let dayNumber = 1;
 
   if (protocol.started_at) {
-    const startedDate = new Date(protocol.started_at);
-    const today = new Date();
-    const diffTime = today.getTime() - startedDate.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    dayNumber = diffDays + 1;
+    const diff =
+      (new Date() - new Date(protocol.started_at)) /
+      (1000 * 60 * 60 * 24);
+    dayNumber = Math.floor(diff) + 1;
   }
 
   if (fastingGlucose !== undefined && fastingGlucose !== null) {
@@ -147,17 +127,20 @@ exports.submitDailyReport = async (
 
   await evaluateExitCriteria(protocolId);
   await evaluateRelapseTriggers(protocolId);
+  await evaluateStagnation(protocolId);
 
   return { success: true };
 };
 
 
 /**
- * CHECK IF PENDING TRANSITION EXISTS
+ * ===============================
+ * INTERNAL HELPERS
+ * ===============================
  */
-async function hasPendingTransition(protocolId) {
 
-  const existing = await pool.query(
+const hasPendingTransition = async (protocolId) => {
+  const res = await pool.query(
     `
     SELECT 1
     FROM phase_transition_requests
@@ -167,42 +150,30 @@ async function hasPendingTransition(protocolId) {
     `,
     [protocolId]
   );
-
-  return existing.rows.length > 0;
-}
+  return res.rows.length > 0;
+};
 
 
 /**
- * EVALUATE EXIT CRITERIA
+ * EXIT CRITERIA
  */
-async function evaluateExitCriteria(protocolId) {
+const evaluateExitCriteria = async (protocolId) => {
 
   if (await hasPendingTransition(protocolId)) return;
 
   const phaseRes = await pool.query(
-    `
-    SELECT pp.current_phase_id, pp.id AS patient_protocol_id, ph.phase_order
-    FROM patient_protocols pp
-    JOIN protocol_phases ph ON ph.id = pp.current_phase_id
-    WHERE pp.id = $1
-    `,
+    `SELECT current_phase_id FROM patient_protocols WHERE id = $1`,
     [protocolId]
   );
 
   if (phaseRes.rows.length === 0) return;
 
-  const { current_phase_id, patient_protocol_id, phase_order } = phaseRes.rows[0];
+  const { current_phase_id } = phaseRes.rows[0];
 
   const rules = await pool.query(
-    `
-    SELECT *
-    FROM protocol_exit_criteria
-    WHERE phase_id = $1
-    `,
+    `SELECT * FROM protocol_exit_criteria WHERE phase_id = $1`,
     [current_phase_id]
   );
-
-  if (rules.rows.length === 0) return;
 
   for (const rule of rules.rows) {
 
@@ -212,7 +183,7 @@ async function evaluateExitCriteria(protocolId) {
       FROM patient_vitals
       WHERE protocol_id = $1
         AND metric_type = $2
-      ORDER BY day_number DESC
+      ORDER BY created_at DESC
       LIMIT $3
       `,
       [protocolId, rule.metric_type, rule.required_consecutive_days]
@@ -233,78 +204,77 @@ async function evaluateExitCriteria(protocolId) {
       }
     });
 
-    if (passed) {
+    if (!passed) continue;
 
-      const nextPhase = await pool.query(
-        `
-        SELECT phase_order
-        FROM protocol_phases
-        WHERE version_id = (
-          SELECT protocol_version_id
-          FROM patient_protocols
-          WHERE id = $1
+    const nextPhase = await pool.query(
+      `
+      SELECT id
+      FROM protocol_phases
+      WHERE version_id = (
+        SELECT protocol_version_id
+        FROM patient_protocols
+        WHERE id = $1
+      )
+        AND phase_order > (
+          SELECT phase_order
+          FROM protocol_phases
+          WHERE id = $2
         )
-          AND phase_order > $2
-        ORDER BY phase_order ASC
-        LIMIT 1
-        `,
-        [protocolId, phase_order]
-      );
+      ORDER BY phase_order ASC
+      LIMIT 1
+      `,
+      [protocolId, current_phase_id]
+    );
 
-      if (nextPhase.rows.length === 0) return;
+    if (nextPhase.rows.length === 0) return;
 
-      await pool.query(
-        `
-        INSERT INTO phase_transition_requests (
-          patient_protocol_id,
-          from_phase,
-          to_phase,
-          reason
-        )
-        VALUES ($1,$2,$3,$4)
-        `,
-        [
-          patient_protocol_id,
-          phase_order,
-          nextPhase.rows[0].phase_order,
-          'Exit criteria satisfied'
-        ]
-      );
-    }
+    const insight = `
+Exit criteria satisfied.
+
+Metric: ${rule.metric_type}
+Threshold: ${rule.operator} ${rule.threshold_value}
+Required consecutive days: ${rule.required_consecutive_days}
+`;
+
+    await pool.query(
+      `
+      INSERT INTO phase_transition_requests (
+        patient_protocol_id,
+        from_phase,
+        to_phase,
+        reason,
+        clinical_insight,
+        status,
+        created_at
+      )
+      VALUES ($1,$2,$3,'Exit criteria satisfied',$4,'pending',NOW())
+      `,
+      [protocolId, current_phase_id, nextPhase.rows[0].id, insight]
+    );
   }
-}
+};
 
 
 /**
- * EVALUATE RELAPSE TRIGGERS
+ * RELAPSE TRIGGERS
  */
-async function evaluateRelapseTriggers(protocolId) {
+const evaluateRelapseTriggers = async (protocolId) => {
 
   if (await hasPendingTransition(protocolId)) return;
 
   const phaseRes = await pool.query(
-    `
-    SELECT pp.current_phase_id, pp.id AS patient_protocol_id
-    FROM patient_protocols pp
-    WHERE pp.id = $1
-    `,
+    `SELECT current_phase_id FROM patient_protocols WHERE id = $1`,
     [protocolId]
   );
 
   if (phaseRes.rows.length === 0) return;
 
-  const { current_phase_id, patient_protocol_id } = phaseRes.rows[0];
+  const { current_phase_id } = phaseRes.rows[0];
 
   const triggers = await pool.query(
-    `
-    SELECT *
-    FROM protocol_relapse_triggers
-    WHERE phase_id = $1
-    `,
+    `SELECT * FROM protocol_relapse_triggers WHERE phase_id = $1`,
     [current_phase_id]
   );
-
-  if (triggers.rows.length === 0) return;
 
   for (const trigger of triggers.rows) {
 
@@ -314,7 +284,7 @@ async function evaluateRelapseTriggers(protocolId) {
       FROM patient_vitals
       WHERE protocol_id = $1
         AND metric_type = $2
-      ORDER BY day_number DESC
+      ORDER BY created_at DESC
       LIMIT $3
       `,
       [protocolId, trigger.metric_type, trigger.required_consecutive_days]
@@ -335,24 +305,104 @@ async function evaluateRelapseTriggers(protocolId) {
       }
     });
 
-    if (triggered) {
-      await pool.query(
-        `
-        INSERT INTO phase_transition_requests (
-          patient_protocol_id,
-          from_phase,
-          to_phase,
-          reason
-        )
-        VALUES ($1,$2,$3,$4)
-        `,
-        [
-          patient_protocol_id,
-          trigger.revert_to_phase + 1,
-          trigger.revert_to_phase,
-          'Relapse trigger activated'
-        ]
-      );
-    }
+    if (!triggered) continue;
+
+    const revertPhase = await pool.query(
+      `
+      SELECT id
+      FROM protocol_phases
+      WHERE version_id = (
+        SELECT protocol_version_id
+        FROM patient_protocols
+        WHERE id = $1
+      )
+        AND phase_order = $2
+      LIMIT 1
+      `,
+      [protocolId, trigger.revert_to_phase]
+    );
+
+    if (revertPhase.rows.length === 0) return;
+
+    const insight = `
+Relapse trigger activated.
+
+Metric: ${trigger.metric_type}
+Threshold breached: ${trigger.operator} ${trigger.threshold_value}
+Required consecutive days: ${trigger.required_consecutive_days}
+`;
+
+    await pool.query(
+      `
+      INSERT INTO phase_transition_requests (
+        patient_protocol_id,
+        from_phase,
+        to_phase,
+        reason,
+        clinical_insight,
+        status,
+        created_at
+      )
+      VALUES ($1,$2,$3,'Relapse trigger activated',$4,'pending',NOW())
+      `,
+      [protocolId, current_phase_id, revertPhase.rows[0].id, insight]
+    );
   }
-}
+};
+
+
+/**
+ * STAGNATION
+ */
+const evaluateStagnation = async (protocolId) => {
+
+  if (await hasPendingTransition(protocolId)) return;
+
+  const res = await pool.query(
+    `
+    SELECT current_phase_id,
+           current_phase_started_at
+    FROM patient_protocols
+    WHERE id = $1
+    `,
+    [protocolId]
+  );
+
+  if (res.rows.length === 0) return;
+
+  const { current_phase_id, current_phase_started_at } = res.rows[0];
+
+  if (!current_phase_started_at) return;
+
+  const diffDays =
+    (new Date() - new Date(current_phase_started_at)) /
+    (1000 * 60 * 60 * 24);
+
+  const MAX_DAYS_IN_PHASE = 14;
+
+  if (diffDays < MAX_DAYS_IN_PHASE) return;
+
+  const insight = `
+Stagnation detected.
+
+Patient has remained in current phase for ${Math.floor(diffDays)} days.
+Maximum recommended duration: ${MAX_DAYS_IN_PHASE} days.
+Clinical review advised.
+`;
+
+  await pool.query(
+    `
+    INSERT INTO phase_transition_requests (
+      patient_protocol_id,
+      from_phase,
+      to_phase,
+      reason,
+      clinical_insight,
+      status,
+      created_at
+    )
+    VALUES ($1,$2,$3,'Stagnation review required',$4,'pending',NOW())
+    `,
+    [protocolId, current_phase_id, current_phase_id, insight]
+  );
+};

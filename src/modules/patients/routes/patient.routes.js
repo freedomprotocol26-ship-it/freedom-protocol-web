@@ -1,39 +1,54 @@
-console.log('🔥 PATIENT ROUTES FILE LOADED');
-
 const express = require('express');
 const router = express.Router();
 
 const { authenticateToken } = require('../../../middleware/auth');
-const requireActiveSubscription = require('../../../middleware/requireActiveSubscription');
 
-const patientProtocolController = require('../controllers/patientProtocol.controller');
+const phaseTransitionController = require('../controllers/phaseTransition.controller');
 
-router.post(
-  '/me/protocols/:id/start',
-  authenticateToken,
-  requireActiveSubscription,
-  patientProtocolController.startProtocol
-);
+console.log('🔥 PATIENT ROUTES FILE LOADED');
 
+/**
+ * ======================================
+ * LIST PENDING TRANSITIONS
+ * ======================================
+ */
 router.get(
-  '/me/protocols/:id/current-phase',
+  '/transitions/pending',
   authenticateToken,
-  requireActiveSubscription,
-  patientProtocolController.getCurrentPhase
+  phaseTransitionController.listPending
 );
 
+/**
+ * ======================================
+ * REQUEST PHASE TRANSITION
+ * ======================================
+ */
 router.post(
-  '/me/protocols/:id/advance-phase',
+  '/transitions/request',
   authenticateToken,
-  requireActiveSubscription,
-  patientProtocolController.advancePhase
+  phaseTransitionController.requestTransition
 );
 
+/**
+ * ======================================
+ * APPROVE TRANSITION
+ * ======================================
+ */
 router.post(
-  '/me/protocols/:id/daily-report',
+  '/transitions/:id/approve',
   authenticateToken,
-  requireActiveSubscription,
-  patientProtocolController.submitDailyReport
+  phaseTransitionController.approve
+);
+
+/**
+ * ======================================
+ * REJECT TRANSITION
+ * ======================================
+ */
+router.post(
+  '/transitions/:id/reject',
+  authenticateToken,
+  phaseTransitionController.reject
 );
 
 module.exports = router;
