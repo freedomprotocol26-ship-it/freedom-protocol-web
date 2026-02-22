@@ -156,7 +156,7 @@ exports.approveTransition = async (transitionId, doctorId) => {
     const pendingReviewCheck = await client.query(
       `
       SELECT COUNT(*)
-      FROM supervisory_reviews
+      FROM governance.supervisory_reviews
       WHERE related_transition_request_id = $1
         AND status IN ('pending','under_review')
       `,
