@@ -1,21 +1,28 @@
 const express = require('express');
 const router = express.Router();
 
+const { login, register, applyDoctor } = require('../controllers/auth.controller');
 const { authenticateToken } = require('../../../middleware/auth');
-const authController = require('../controllers/auth.controller');
 
 /**
+ * ======================================
  * POST /auth/login
+ * ======================================
  */
-router.post('/login', authController.login);
+router.post('/login', login);
 
 /**
- * POST /auth/apply-doctor
+ * ======================================
+ * POST /auth/register
+ * ======================================
  */
-router.post(
-  '/apply-doctor',
-  authenticateToken,
-  authController.applyDoctor
-);
+router.post('/register', register);
+
+/**
+ * ======================================
+ * POST /auth/apply-doctor
+ * ======================================
+ */
+router.post('/apply-doctor', authenticateToken, applyDoctor);
 
 module.exports = router;

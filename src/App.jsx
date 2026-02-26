@@ -1,26 +1,21 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import LoginPage from "./pages/LoginPage.jsx";
-import DoctorDashboard from "./pages/DoctorDashboard.jsx";
-import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import LoginPage from "./pages/LoginPage";
+import DoctorDashboard from "./pages/DoctorDashboard";
+import EncounterDetailPage from "./pages/EncounterDetailPage";
 
-export default function App() {
+function App() {
   return (
-    <Routes>
-      {/* Public Route */}
-      <Route path="/login" element={<LoginPage />} />
-
-      {/* Protected Route */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <DoctorDashboard />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Default Redirect */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
+    <Router>
+      <Routes>
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/dashboard" element={<DoctorDashboard />} />
+        <Route
+          path="/doctor/consultations/:id"
+          element={<EncounterDetailPage />}
+        />
+      </Routes>
+    </Router>
   );
 }
+
+export default App;

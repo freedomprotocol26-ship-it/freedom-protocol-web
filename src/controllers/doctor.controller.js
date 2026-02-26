@@ -33,7 +33,23 @@ const getWallet = controllerErrorHandler(async (req, res) => {
   });
 });
 
+/**
+ * GET /api/doctor/consultations
+ */
+const getConsultations = controllerErrorHandler(async (req, res) => {
+
+  const consultations =
+    await doctorService.getConsultations(req.user.user_id);
+
+  res.status(200).json({
+    success: true,
+    data: consultations,
+    timestamp: new Date().toISOString()
+  });
+});
+
 module.exports = {
   getDashboard,
-  getWallet
+  getWallet,
+  getConsultations
 };

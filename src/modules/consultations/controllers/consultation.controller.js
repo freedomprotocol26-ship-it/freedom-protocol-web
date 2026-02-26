@@ -3,13 +3,12 @@ const consultationService = require('../services/consultation.service');
 /**
  * Create Consultation
  */
-exports.createConsultation = async (req, res, next) => {
+exports.createConsultation = async (req, res) => {
   try {
-
     const doctorId = req.user.id;
     const { patientId, protocolId, type, scheduledAt } = req.body;
 
-    const result = await consultationService.createConsultation({
+    const consultation = await consultationService.createConsultation({
       doctorId,
       patientId,
       protocolId,
@@ -17,13 +16,50 @@ exports.createConsultation = async (req, res, next) => {
       scheduledAt
     });
 
-    res.status(201).json({
-      success: true,
-      data: result
-    });
+    res.json({ success: true, data: consultation });
 
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
+
+/**
+ * Get Doctor Consultations
+ */
+exports.getDoctorConsultations = async (req, res) => {
+  try {
+    const doctorId = req.user.id;
+    const consultations = await consultationService.getDoctorConsultations(doctorId);
+    res.json({ success: true, data: consultations });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
+
+/**
+ * Get Consultation By ID
+ */
+exports.getConsultationById = async (req, res) => {
+  try {
+    const doctorId = req.user.id;
+    const { id } = req.params;
+
+    const consultation = await consultationService.getConsultationById(id, doctorId);
+
+    if (!consultation) {
+      return res.status(404).json({ success: false, error: 'Consultation not found' });
+    }
+
+    res.json({ success: true, data: consultation });
+
+  } catch (error) {
+    console.error('Get Consultation Error:', error);
+    res.status(500).json({ success: false, error: 'Server error' });
   }
 };
 
@@ -31,48 +67,58 @@ exports.createConsultation = async (req, res, next) => {
 /**
  * Start Consultation
  */
-exports.startConsultation = async (req, res, next) => {
+exports.startConsultation = async (req, res) => {
   try {
-
     const doctorId = req.user.id;
-    const consultationId = req.params.id;
+    const { id } = req.params;
 
-    const result = await consultationService.startConsultation(
-      consultationId,
-      doctorId
-    );
+    const consultation = await consultationService.startConsultation(id, doctorId);
+    res.json({ success: true, data: consultation });
 
-    res.json({
-      success: true,
-      data: result
-    });
-
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ success: false, error: error.message });
   }
 };
 
 
 /**
- * Generate Encounter Draft
+ * Generate Draft
  */
-exports.generateEncounterDraft = async (req, res, next) => {
+exports.generateEncounterDraft = async (req, res) => {
   try {
-
     const doctorId = req.user.id;
-    const consultationId = req.params.id;
+    const { id } = req.params;
 
-    const result = await consultationService.generateEncounterDraft(
-      consultationId,
-      doctorId
+    const draft = await consultationService.generateEncounterDraft(id, doctorId);
+    res.json({ success: true, data: draft });
+
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+
+/**
+ * Approve Encounter
+ */
+exports.approveEncounter = async (req, res) => {
+  try {
+    const doctorId = req.user.id;
+    const { id } = req.params;
+    const { final_note } = req.body;
+
+    const result = await consultationService.approveEncounter(
+      id,
+      doctorId,
+      final_note
     );
 
-    res.json({
-      success: true,
-      data: result
-    });
+    res.json({ success: true, data: result });
 
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ success: false, error: error.message });
   }
 };

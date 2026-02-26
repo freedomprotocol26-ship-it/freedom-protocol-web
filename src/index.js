@@ -24,7 +24,10 @@ const doctorDashboardRoutes = require('./modules/doctorDashboard/routes/doctorDa
 const patientRoutes = require('./modules/patients/routes/patient.routes');
 const consultationRoutes = require('./modules/consultations/routes/consultation.routes');
 const secondOpinionRoutes = require('./modules/doctor/routes/secondOpinion.routes');
-const supervisoryRoutes = require('./modules/doctor/routes/supervisory.routes'); // ✅ NEW
+const supervisoryRoutes = require('./modules/doctor/routes/supervisory.routes');
+
+const marketplaceRoutes = require('./modules/marketplace/routes/marketplace.routes');
+const aiRoutes = require('./routes/ai.routes');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -56,15 +59,18 @@ app.use('/protocols', protocolRoutes);
 
 app.use('/doctor', doctorDashboardRoutes);
 app.use('/doctor', secondOpinionRoutes);
-app.use('/doctor', supervisoryRoutes); // ✅ NEW
+app.use('/doctor', supervisoryRoutes);
 
 app.use('/admin', adminRoutes);
 app.use('/patients', patientRoutes);
 app.use('/consultations', consultationRoutes);
 
+app.use('/marketplace', marketplaceRoutes);
+app.use('/ai', aiRoutes);
+
 /**
  * ===============================
- * DEBUG ROUTE (Temporary)
+ * DEBUG ROUTE
  * ===============================
  */
 

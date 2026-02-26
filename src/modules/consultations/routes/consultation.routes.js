@@ -14,6 +14,24 @@ router.post(
 );
 
 /**
+ * Get Consultations for Logged-in Doctor
+ */
+router.get(
+  '/doctor',
+  authenticateToken,
+  consultationController.getDoctorConsultations
+);
+
+/**
+ * Get Single Consultation By ID
+ */
+router.get(
+  '/:id',
+  authenticateToken,
+  consultationController.getConsultationById
+);
+
+/**
  * Start Consultation
  */
 router.post(

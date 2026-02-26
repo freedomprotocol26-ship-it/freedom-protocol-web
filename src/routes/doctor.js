@@ -29,4 +29,14 @@ router.get(
   doctorController.getWallet
 );
 
+/**
+ * GET doctor consultations
+ */
+router.get(
+  '/consultations',
+  authenticateToken,
+  authorizeRole(['doctor']),
+  doctorController.getConsultations
+);
+
 module.exports = router;

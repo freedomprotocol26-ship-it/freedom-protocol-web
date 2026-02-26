@@ -6,6 +6,7 @@
 const BaseError = require('../errors/baseError');
 const doctorRepository = require('../repositories/doctor.repository');
 const earningsRepository = require('../repositories/earnings.repository');
+const pool = require('../db');
 
 /**
  * Get doctor dashboard
@@ -57,7 +58,34 @@ const getWallet = async (doctorUserId) => {
   };
 };
 
+/**
+ * Get doctor's consultations
+ */
+const getConsultations = async (doctorUserId) => {
+
+  const result = await pool.query(
+    `
+    SELECT 
+      id,
+      patient_id,
+      consultation_type,
+      booking_status,
+      payment_status,
+      scheduled_at,
+      ai_summary_generated,
+      ai_summary_approved
+    FROM marketplace.consultations
+    WHERE primary_doctor_id = $1
+    ORDER BY scheduled_at DESC
+    `,
+    [doctorUserId]
+  );
+
+  return result.rows;
+};
+
 module.exports = {
   getDashboard,
-  getWallet
+  getWallet,
+  getConsultations
 };
